@@ -1,4 +1,8 @@
-## Welcome to TLIO home page!
+### *Welcome to TLIO home page!*
+
+## Publication
+
+![Introdunction Trajectory](images/IntroductionTrajAfterReview.png)
 
 This work aims at solving pedestrian state estimation problem with only IMU data, leveraging the combination of deep learning and Bayesian filters.
 
