@@ -120,6 +120,5 @@ We show the full system performance comparison between different network input I
 </details>
 
 
-## Acknowledgements
 
 
