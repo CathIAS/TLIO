@@ -112,7 +112,7 @@ To make our network more robust to input noise, we trained using data augmentati
 <details>
 <summary> System robustness </summary> 
 
-We show the full system performance comparison between different network input IMU frequencies, data window sizes, and filter update frequencies, and we have a consistent lower error and drift than RONIN. These thorough experiments show the consistency and robustness of this proposed approach regardless of variations in the setting.
+We show the full system performance comparison between different network input IMU frequencies, data window sizes, and filter update frequencies. We observe a consistent lower error and drift than RONIN-3D. These thorough experiments show the consistency and robustness of this proposed approach regardless of variations in the setting.
 
 <p align="center">
   <img width="70%" src="assets/fig9-simplified.png" />
