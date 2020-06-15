@@ -3,7 +3,9 @@
 ## Publication
 
 **IMU-Based Pedestrian Dead Reckoning with Learned Motion Model** \
-Wenxin Liu, David Caruso, Eddy Ilg, Jing Dong, Anastasios I. Mourikis, Kostas Daniilidis, Vijay Kumar, Jakob Engel
+Wenxin Liu*, David Caruso, Eddy Ilg, Jing Dong, Anastasios I. Mourikis, Kostas Daniilidis, Vijay Kumar, Jakob Engel \
+University of Pennsylvania, Philadelphia \
+Facebook Reality Labs, Redmond 
 
 <p align="center">
   <img width="700" src=images/IntroductionTrajAfterReview.png>
@@ -16,6 +18,15 @@ Wenxin Liu, David Caruso, Eddy Ilg, Jing Dong, Anastasios I. Mourikis, Kostas Da
 [Code]
 
 
+## System
+
+<p align="center">
+  <img width="500" src=images/system.png>
+</p>
+
+Our EKF system makes use of the output from the network as measurement update. The IMU buffer provides segments of gravity-aligned IMU measurements to the network, using rotation from the filter state. The network outputs displacement \\(\hat{\boldsymbol{d}}\\) and uncertainty \\(\hat{\boldsymbol{u}}\\) used as measurement update to the filter. The filter estimates rotation, velocity, position and IMU biases at IMU rate.
+
+
 ## Performance
 
 We compare TLIO to our [RONIN](https://ronin.cs.sfu.ca/) implementation in 3D. The ground truth for the error metrics is from a state-of-the-art Visual Inertial Odometry implementation based on [MSCKF](https://www-users.cs.umn.edu/~stergios/papers/ICRA07-MSCKF.pdf). 
@@ -24,24 +35,46 @@ We compare TLIO to our [RONIN](https://ronin.cs.sfu.ca/) implementation in 3D. T
   <summary> Show figures </summary>
   
   Accurate bias estimates from the filter result in better orientation estimates than AHRS attitude filter. RONIN uses AHRS rotation while TLIO estimates the rotation as part of the state. TLIO also obtains better position estimates.
+  
   ![system-perf](images/system-perf.png)
   
   This image shows sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and rolling on a chair.
-  ![exam-traj](images/examplesTraj2.png)
   
+  ![exam-traj](images/examplesTraj2.png)
+
 </details>
 
-Checkout these supplementary tracking videos (Blue: TLIO; Green: VIO)
+Checkout these supplementary tracking videos! (Blue: TLIO; Green: VIO)
 
 [Staircase](https://drive.google.com/open?id=1NIZilMaIGx05EUPfztoMxiR2g8P3C0TM)
 [Symposium]
 [Pool]
 [Apartment]
 
+We also conducted variational analysis on the full system and the network component. Click for details below.
+
+<details>
+  <summary> Network output statistical consistency </summary> 
+</details>
+
+<details>
+  <summary> Importance of the network covariance </summary> 
+</details>
+
+<details>
+  <summary> Regressing with different data sizes </summary> 
+</details>
+
+<details>
+  <summary> Network robustness </summary> 
+</details>
+
+<details>
+  <summary> System robustness </summary> 
+</details>
 
 
-
-
+Refer to our [paper] for more details.
 
 
 
