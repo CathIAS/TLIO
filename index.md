@@ -1,7 +1,7 @@
 ---
 title: TLIO
 subtitle: Tight Learned Inertial Odometry - IMU-only navigation with deep learning
-hero_image: /assets/cover.png
+hero_image: assets/cover.png
 toc: true
 layout: page
 ---
