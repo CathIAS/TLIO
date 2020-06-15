@@ -54,7 +54,7 @@ Sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and ro
 </p>
   
 
-Checkout these supplementary tracking videos! (Blue: TLIO; Green: VIO)
+Supplementary videos showing tracking in 3D (Blue: TLIO; Green: VIO).
 
 [Staircase](https://drive.google.com/open?id=1NIZilMaIGx05EUPfztoMxiR2g8P3C0TM)
 [Symposium]
