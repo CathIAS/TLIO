@@ -3,5 +3,5 @@ remote-theme: chrisrhymes/bulma-clean-theme
 #github: [metadata]
 #sass:
 #  source_dir: ./_sass
-#plugins:
-#  - jekyll-remote-theme
+plugins:
+  - jekyll-remote-theme

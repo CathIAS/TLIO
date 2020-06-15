@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 gem "jekyll"
-gem "bulma-clean-theme"
+#gem "bulma-clean-theme"
 gem "jekyll-remote-theme"
 gem "sprockets", "~> 3.7"
 group :jekyll_plugins do 
