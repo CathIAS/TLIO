@@ -1,1 +1,4 @@
-theme: jekyll-theme-cayman
+theme: bulma-clean-theme 
+github: [metadata]
+sass:
+  source_dir: ./_sass
