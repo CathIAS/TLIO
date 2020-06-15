@@ -1,4 +1,4 @@
-theme: bulma-clean-theme 
+#theme: bulma-clean-theme 
 remote-theme: chrisrhymes/bulma-clean-theme
 github: [metadata]
 sass:
