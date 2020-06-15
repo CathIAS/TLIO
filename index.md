@@ -62,30 +62,63 @@ Checkout these supplementary tracking videos! (Blue: TLIO; Green: VIO)
 
 #### Variation studies
 
-We also conducted analysis on the variations of the full system and the network component. Click for details below.
+We also conducted analysis on the variations of the full system and the network component. Click for the results below and more details can be found in our [paper].
 
 <details>
-  <summary> Network output statistical consistency </summary> 
+<summary> Network output statistical consistency </summary> 
+
+Points with larger errors have larger variance outputs, and over 99% of the points fall inside the 3\(\sigma\) cone region indicated by the dashed red line.
+
+<p align="center">
+  <img width="70%" src="assets/err-sigmas.png" />
+</p>
+
 </details>
 
 <details>
-  <summary> Importance of the network covariance </summary> 
+<summary> Importance of the network covariance </summary> 
+
+TLIO-mse uses a network which does not regress the covariance, and both TLIO-mse and TLIO-fixcov use only a fixed covariance using the best parameter from grid search. Using the network covariance output improves the performance in all metrics, as well as system robustness.
+
+<p align="center">
+  <img width="80%" src="assets/filter_ablation.png" />
+</p>
+
 </details>
 
 <details>
-  <summary> Regressing with different data sizes </summary> 
+<summary> Regressing with different data sizes </summary> 
+
+We trained with various network input data sizes, including using past data. We do not observe a major difference between the different time windows, while we observe a smaller MSE loss as we use more data. This is due to the increase in temporal correlation between data using overlapping time windows during concatenation for the full trajectory. We choose to use 1s time window with no past data as our final system.
+
+<p align="center">
+  <img width="60%" src="assets/net-var.png" />
+</p>
+
 </details>
 
 <details>
-  <summary> Network robustness </summary> 
+<summary> Network robustness </summary> 
+
+To make our network more robust to input noise, we trained with data augmentation by perturbing the input with random bias and gravity direction noise. We observe on the average performance on the test set that the network output is more robust to input errors.
+
+<p align="center">
+  <img width="70%" src="assets/perturbation.png" />
+</p>
+
 </details>
 
 <details>
-  <summary> System robustness </summary> 
+<summary> System robustness </summary> 
+
+We show the full system performance comparison between different network input IMU frequencies, data window sizes, and filter update frequencies. The full system performance is consistent in various settings, and we also observe a better result using higher update frequency. 
+
+<p align="center">
+  <img width="70%" src="assets/fig9-simplified.png" />
+</p>
+
 </details>
 
-
-Refer to our [paper] for more details.
 
 
 
