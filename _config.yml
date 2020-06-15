@@ -4,4 +4,4 @@ github: [metadata]
 sass:
   source_dir: ./_sass
 plugins:
-- jekyll-remote-theme
+  - jekyll-remote-theme
