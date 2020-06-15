@@ -34,6 +34,7 @@ TLIO is an IMU-only pedestrian navigation approach combining deep learning and B
 
 Our EKF system makes use of the output from the network as measurement update. The IMU buffer provides segments of gravity-aligned IMU measurements to the network, using rotation from the filter state. The network outputs displacement \\(\hat{\boldsymbol{d}}\\) and uncertainty \\(\hat{\boldsymbol{u}}\\) used as measurement update to the filter. The filter estimates rotation, velocity, position and IMU biases at IMU rate.
 
+Our training data was collected with IMU and camera mounted on headsets. The network was trained first with MSE loss for the displacement for weight and bias initialization, then the maximum likelihood loss assuming Gaussian distribution. The displacement estimates provide constraints on pairs of past states (e.g. \\(\mathtt{R}_i\\) and \\(\mathtt{R}_j\\)) in the filter, and the filter keeps track of an array of past poses in the state as well as the current state and sensor biases.
 
 ## Performance
 #### System evaluation
@@ -46,7 +47,7 @@ Accurate bias estimates from the filter result in better orientation estimates t
   <img width="80%" src="assets/system-perf.png" />
 </p>
   
-This image shows sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and rolling on a chair.
+Sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and rolling on a chair, which are not present in the training data.
 
 <p align="center">
   <img width="80%" src="assets/examplesTraj2.png" />
