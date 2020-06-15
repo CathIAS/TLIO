@@ -3,7 +3,7 @@ title: TLIO
 subtitle: Tight Learned Inertial Odometry - IMU-only navigation with deep learning
 hero_image: /assets/cover.png
 toc: true
-layout: page
+layout: default
 ---
 
 TLIO is an IMU-only pedestrian navigation approach combining deep learning and Bayesian filter. We recognize human motion patterns from 60 hours of training data consisting of various pedestrian activities, and fuse the learned relative state estimates and uncertainties into an EKF framework solving for pose, velocity and sensor biases.
