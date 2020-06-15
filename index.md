@@ -66,7 +66,7 @@ Checkout these supplementary tracking videos! (Blue: TLIO; Green: VIO)
 We also analyzed different variants of the full system and the network component. Click for the results below and more details can be found in our [paper].
 
 <details>
-<summary> Network output statistical consistency </summary> 
+<summary> Network output consistency </summary> 
 
 Using learned estimates for measurement updates in a Bayesian filter framework naturally raises the question of whether the estimates are consistent. Therefore we plotted the displacement errors vs. the standard deviation from the network uncertainty outputs. We observe that, trained with maximum likelihood loss, over 99% of the points fall inside the 3\(\sigma\) cone region indicated by the dashed red line.
 
