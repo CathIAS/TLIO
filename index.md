@@ -68,7 +68,7 @@ We also analyzed different variants of the full system and the network component
 <details>
 <summary> Network output consistency </summary> 
 
-Using learned estimates for measurement updates in a Bayesian filter framework naturally raises the question of whether the estimates are consistent. Therefore we plotted the displacement errors vs. the standard deviation from the network uncertainty outputs. We observe that, trained with maximum likelihood loss, over 99% of the points fall inside the 3\(\sigma\) cone region indicated by the dashed red line.
+<br>Using learned estimates for measurement updates in a Bayesian filter framework naturally raises the question of whether the estimates are consistent. Therefore we plotted the displacement errors vs. the standard deviation from the network uncertainty outputs. We observe that, trained with maximum likelihood loss, over 99% of the points fall inside the 3\(\sigma\) cone region indicated by the dashed red line.<br>
 
 <p align="center">
   <img width="70%" src="assets/err-sigmas.png" />
@@ -79,7 +79,7 @@ Using learned estimates for measurement updates in a Bayesian filter framework n
 <details>
 <summary> Importance of the network covariance </summary> 
 
-Knowing that the network uncertainty estimate is consistent with the accuracy, would it help the system performance than simply finding a fixed covariance parameter? Here in this graph, both TLIO-mse and TLIO-fixcov use a hand-tuned hyperparameter from grid search, where in TLIO-mse the network does not regress the covariance. We observe clear improvements using the learned uncertainty for both accuracy and robustness, indicating the effectiveness of the network associating uncertainty with motion patterns.
+<br>Knowing that the network uncertainty estimate is consistent with the accuracy, would it help the system performance than simply finding a fixed covariance parameter? Here in this graph, both TLIO-mse and TLIO-fixcov use a hand-tuned hyperparameter from grid search, where in TLIO-mse the network does not regress the covariance. We observe clear improvements using the learned uncertainty for both accuracy and robustness, indicating the effectiveness of the network associating uncertainty with motion patterns.<br>
 
 <p align="center">
   <img width="80%" src="assets/filter_ablation.png" />
@@ -90,7 +90,7 @@ Knowing that the network uncertainty estimate is consistent with the accuracy, w
 <details>
 <summary> Regressing with different data sizes </summary> 
 
-Another natural question to ask would be - can we improve the network accuracy by simply feeding more data? The answer is yes, but no for the system. We trained with various network input data sizes, including using past data. While we do observe a smaller MSE loss as we use more data, we do not observe a major difference on the metrics for the reconstructed trajectory. This is due to the increase in temporal correlation between data using overlapping time windows during velocity concatenation.
+<br>Another natural question to ask would be - can we improve the network accuracy by simply feeding more data? The answer is yes, but no for the system. We trained with various network input data sizes, including using past data. While we do observe a smaller MSE loss as we use more data, we do not observe a major difference on the metrics for the reconstructed trajectory. This is due to the increase in temporal correlation between data using overlapping time windows during velocity concatenation.<br>
 
 <p align="center">
   <img width="60%" src="assets/net-var.png" />
@@ -101,7 +101,7 @@ Another natural question to ask would be - can we improve the network accuracy b
 <details>
 <summary> Network robustness </summary> 
 
-To make our network more robust to input noise, we trained using data augmentation techniques by perturbing the input with random bias and gravity direction noise. We observe on the test set that the network is more robust to input errors when trained with both gravity direction and bias perturbations.
+<br>To make our network more robust to input noise, we trained using data augmentation techniques by perturbing the input with random bias and gravity direction noise. We observe on the test set that the network is more robust to input errors when trained with both gravity direction and bias perturbations.<br>
 
 <p align="center">
   <img width="70%" src="assets/perturbation.png" />
@@ -112,7 +112,7 @@ To make our network more robust to input noise, we trained using data augmentati
 <details>
 <summary> System robustness </summary> 
 
-We show the full system performance comparison between different network input IMU frequencies, data window sizes, and filter update frequencies. We observe a consistent lower error and drift than RONIN-3D. These thorough experiments show the consistency and robustness of this proposed approach regardless of variations in the setting.
+<br>We show the full system performance comparison between different network input IMU frequencies, data window sizes, and filter update frequencies. We observe a consistent lower error and drift than RONIN-3D. These thorough experiments show the consistency and robustness of this proposed approach regardless of variations in the setting.<br>
 
 <p align="center">
   <img width="70%" src="assets/fig9-simplified.png" />
