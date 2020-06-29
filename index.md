@@ -58,12 +58,12 @@ Sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and ro
 
 Supplementary videos showing tracking in 3D (Blue: TLIO; red: 3D RoNIN; Green: VIO).
 
-[Staircase](https://drive.google.com/file/d/1y6vcC8qLCAIy9HazBGOxBVuH18eu8ByU/preview?usp=sharing)
-[Symposium](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)
-[Pool](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)
+[[Staircase](https://drive.google.com/file/d/1y6vcC8qLCAIy9HazBGOxBVuH18eu8ByU/preview?usp=sharing)]
+[[Symposium](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)]
+[[Pool](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)]
 #### Variation studies
 
-We also analyzed different variants of the full system and the network component. Click for the results below and more details can be found in our [paper].
+We also analyzed different variants of the full system and the network component. Click for the results below and more details can be found in our [paper](https://drive.google.com/file/d/1CHNvUBrw7ZcT8Ruays8zMAcDwOUSsR6B/preview).
 
 <details>
 <summary> Network output consistency </summary> 
