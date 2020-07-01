@@ -23,9 +23,9 @@ TLIO is an IMU-only pedestrian navigation approach combining deep learning and B
 
 - [Paper](https://drive.google.com/file/d/1CHNvUBrw7ZcT8Ruays8zMAcDwOUSsR6B/preview)
 - [Code (Soon)]
-- [Supplementary Video - Staircase](https://drive.google.com/file/d/1y6vcC8qLCAIy9HazBGOxBVuH18eu8ByU/preview?usp=sharing)
-- [Supplementary Video - Symposium](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)
-- [Supplementary Video - Pool](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)
+- [Supplementary Video - Symposium](https://youtu.be/L9A1kE42apo)
+- [Supplementary Video - Pool](https://youtu.be/WvTW9jQzP5o)
+- [Supplementary Video - Staircase](https://youtu.be/Mw1UgA-bNW8)
 
 
 ## System
@@ -58,9 +58,10 @@ Sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and ro
 
 Supplementary videos showing tracking in 3D (Blue: TLIO; red: 3D RoNIN; Green: VIO).
 
-[[Staircase](https://drive.google.com/file/d/1y6vcC8qLCAIy9HazBGOxBVuH18eu8ByU/preview?usp=sharing)]
-[[Symposium](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)]
-[[Pool](https://drive.google.com/file/d/1Xo2qgeLWGuS9eYqtmbJmGAMpmz-zCxBG/preview?usp=sharing)]
+[[Symposium](https://youtu.be/L9A1kE42apo)]
+[[Pool](https://youtu.be/WvTW9jQzP5o)]
+[[Staircase](https://youtu.be/Mw1UgA-bNW8)]
+
 #### Variation studies
 
 We also analyzed different variants of the full system and the network component. Click for the results below and more details can be found in our [paper](https://drive.google.com/file/d/1CHNvUBrw7ZcT8Ruays8zMAcDwOUSsR6B/preview).
