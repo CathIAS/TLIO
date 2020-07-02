@@ -12,7 +12,7 @@ TLIO is an IMU-only pedestrian navigation approach combining deep learning and B
 
 <br>
 <p align="center">
-  <b><span style="font-size: 1.5em">TLIO: Tight Learned Inertial Odoemtry</span></b><br>
+  <b><span style="font-size: 1.5em">TLIO: Tight Learned Inertial Odometry</span></b><br>
   <b><span style="font-size: 1.2em">Wenxin Liu, David Caruso, Eddy Ilg, Jing Dong, Anastasios I. Mourikis, Kostas Daniilidis, Vijay Kumar, Jakob Engel</span></b><br>
   <span style="font-size: 1.1em">Facebook Reality Labs, Redmond &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; University of Pennsylvania, Philadelphia</span><br><br>
 
