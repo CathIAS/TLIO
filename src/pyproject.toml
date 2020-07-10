@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "tlio"
+version = "0.1.0"
+description = "The description of the package"
+
+license = "MIT"
+
+authors = [
+    "Wenxin Liu <wenxinl@seas.upenn.edu>",
+    "David Caruso <dcaruso@fb.com>"
+]
+
+readme = './.README.md'  # Markdown files are supported
+
+repository = "https://github.com/CathIAS/not_vio"
+homepage = "https://github.com/CathIAS/not_vio"
+
+keywords = ['Research', 'Inertial', 'Odometry', 'Deep-learning']
+
+[tool.poetry.dependencies]
+python = "~3.7"
+torch = "*"                                                                                               
+numpy = "*"                                                                                                
+matplotlib = "*"                                                                                          
+pandas = "*"                                                                                          
+scipy = "*"                                                                                          
+progressbar2 = "*"                                                                                            
+coloredlogs = "*"                                                                                             
+tensorboard = "*"                                                                                             
+seaborn = "*"
+liegroups = {git = "https://github.com/utiasSTARS/liegroups", branch = "master"}                                                 
+numba = "*"
+h5py = "^2.10.0"
+setuptools = "^46.1.3"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]

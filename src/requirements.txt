@@ -1,0 +1,13 @@
+torch
+numpy
+matplotlib
+pandas
+scipy
+progressbar2
+coloredlogs
+tensorboard
+seaborn
+git+https://github.com/utiasSTARS/liegroups@master
+numba
+h5py
+setuptools
