@@ -46,7 +46,7 @@ We compare TLIO to our [RONIN](https://ronin.cs.sfu.ca/) implementation in 3D. T
 Accurate bias estimates from the filter result in better orientation estimates than AHRS attitude filter. RONIN uses AHRS rotation while TLIO estimates the rotation as part of the state. TLIO also obtains better position estimates.
   
 <p align="center">
-  <img width="80%" src="assets/system-perf.png" />
+  <img width="80%" src="assets/system-perf_proof.png" />
 </p>
   
 Sample trajectories in 2D. 3.a and 3.b are failure cases of side-stepping and rolling on a chair, which are not present in the training data.
@@ -83,7 +83,7 @@ We also analyzed different variants of the full system and the network component
 <br>Knowing that the network uncertainty estimate is consistent with the accuracy, would it help the system performance than simply finding a fixed covariance parameter? Here in this graph, both TLIO-mse and TLIO-fixcov use a hand-tuned hyperparameter from grid search, where in TLIO-mse the network does not regress the covariance. We observe clear improvements using the learned uncertainty for both accuracy and robustness, indicating the effectiveness of the network associating uncertainty with motion patterns.<br>
 
 <p align="center">
-  <img width="80%" src="assets/filter_ablation.png" />
+  <img width="80%" src="assets/filter_ablation-colorized_proof.png" />
 </p>
 
 </details>
@@ -116,7 +116,7 @@ We also analyzed different variants of the full system and the network component
 <br>We show the full system performance comparison between different network input IMU frequencies, data window sizes, and filter update frequencies. We observe a consistent lower error and drift than RONIN-3D. These thorough experiments show the consistency and robustness of this proposed approach regardless of variations in the setting.<br>
 
 <p align="center">
-  <img width="70%" src="assets/fig9-simplified.png" />
+  <img width="70%" src="assets/fig9-simplified_proof.png" />
 </p>
 
 </details>
