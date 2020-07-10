@@ -21,7 +21,7 @@ TLIO is an IMU-only pedestrian navigation approach combining deep learning and B
 
 **Abstract**: In this work we propose a tightly-coupled Extended Kalman Filter framework for IMU-only state estimation. Strap-down IMU measurements provide relative state estimates based on IMU kinematic motion model. However the integration of measurements is sensitive to sensor bias and noise, causing significant drift within seconds. Recent research by Yan et al. (RoNIN) and Chen et al. (IONet) showed the capability of using trained neural networks to obtain accurate 2D displacement estimates from segments of IMU data and obtained good position estimates from concatenating them. This paper demonstrates a network that regresses 3D displacement estimates and its uncertainty, giving us the ability to tightly fuse the relative state measurement into a stochastic cloning EKF to solve for pose, velocity and sensor biases. We show that our network, trained with pedestrian data from a headset, can produce statistically consistent measurement and uncertainty to be used as update step in the filter, and the tightly-coupled system outperforms velocity integration approaches in position estimates, and AHRS attitude filter in orientation estimates.
 
-- [Paper](https://drive.google.com/file/d/1CHNvUBrw7ZcT8Ruays8zMAcDwOUSsR6B/preview)
+- [Paper](http://arxiv.org/abs/2007.01867)
 - [Code (Soon)]
 - [Supplementary Video - Staircase](https://youtu.be/Mw1UgA-bNW8)
 - [Supplementary Video - Symposium](https://youtu.be/L9A1kE42apo)
@@ -64,7 +64,7 @@ Supplementary videos showing tracking in 3D (Blue: TLIO; red: 3D RoNIN; Green: V
 
 #### Variation studies
 
-We also analyzed different variants of the full system and the network component. Click for the results below and more details can be found in our [paper](https://drive.google.com/file/d/1CHNvUBrw7ZcT8Ruays8zMAcDwOUSsR6B/preview).
+We also analyzed different variants of the full system and the network component. Click for the results below and more details can be found in our [paper](http://arxiv.org/abs/2007.01867).
 
 <details>
 <summary> Network output consistency </summary> 
