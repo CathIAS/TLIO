@@ -49,6 +49,7 @@ if __name__ == "__main__":
     io_groups.add_argument("--model_param_path", required=True, type=str, default=None)
     io_groups.add_argument("--out_dir", type=str, default="./")
 
+    parser.add_argument("--cpu", type=bool, default=True)
     args = parser.parse_args()
 
     # overwrite network model parameter from json file if specified
