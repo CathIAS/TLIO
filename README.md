@@ -59,13 +59,13 @@ Timestamps (t) are in microseconds (us). Each row corresponds to a single timest
   - [ t ]
   - Note: single column
 - `imu_measurements.txt` (Data from IMU)
- - [ t, ax_raw, ay_raw, az_raw, ax_calib, ay_calib, az_calib, wx_raw, wy_raw, wz_raw, wx_calib, wy_calib, wz_calib]
+  - [ t, ax_raw, ay_raw, az_raw, ax_calib, ay_calib, az_calib, wx_raw, wy_raw, wz_raw, wx_calib, wy_calib, wz_calib]
 - `evolving_state.txt` (Data from VIO)
- - [ t, qw, qx, qy, qz, x, y, z, vx, vy, vz]
+  - [ t, qw, qx, qy, qz, x, y, z, vx, vy, vz]
 - `calib_state.txt` (?)
- - ?
+  - ?
 - `atttitude.txt` (AHRS attitude)
- - [ t, qw, qx, qy, qz ]
+  - [ t, qw, qx, qy, qz ]
 
 # Network training and evaluation
 
