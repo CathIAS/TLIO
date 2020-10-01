@@ -53,7 +53,7 @@ The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires i
 
 
 ### Used to generate `data.hdf5`
-Timestamps (t) are in miliseconds. Each row corresponds to a single timestamp. All data is delimited by commas.
+Timestamps (t) are in microseconds (us). Each row corresponds to a single timestamp. All data is delimited by commas.
 
 - `my_timestamps_p.txt` (single file with all timestamps)
   - [ t ]
