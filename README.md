@@ -47,6 +47,11 @@ The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires i
 
 ## File formats
 
+### Dataset lists
+
+`test.txt`, `train.txt` and `val.txt` are all the same. Each row is the name of a sequence to be used for one of the purposes of test, train or validate. The name should be the same of the sequence directory for example `seq1` and `seq22` as above.
+
+
 ### Used to generate `data.hdf5`
 Timestamps (t) are in miliseconds. Each row corresponds to a single timestamp. All data is delimited by commas.
 
@@ -54,7 +59,7 @@ Timestamps (t) are in miliseconds. Each row corresponds to a single timestamp. A
   - [ t ]
   - Note: single column
 - `imu_measurements.txt` (Data from IMU)
- - [ t, ax_raw, ay_raw, az_raw, wz_raw, wy_raw, wz_raw, ax_calib, ay_calib, az_calib, wz_calib, wy_calib, wz_calib]
+ - [ t, ax_raw, ay_raw, az_raw, ax_calib, ay_calib, az_calib, wx_raw, wy_raw, wz_raw, wx_calib, wy_calib, wz_calib]
 - `evolving_state.txt` (Data from VIO)
  - [ t, qw, qx, qy, qz, x, y, z, vx, vy, vz]
 - `calib_state.txt` (?)
