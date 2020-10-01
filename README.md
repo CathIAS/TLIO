@@ -45,6 +45,23 @@ Dataset
 
 The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires interpolated stamped IMU measurement files and time-aligned VIO states files. The user can generate his/her own dataset with a different procedure to obtain the same fields to be used for network training and filter inputs.
 
+## File formats
+
+### Used to generate `data.hdf5`
+Timestamps (t) are in miliseconds. Each row corresponds to a single timestamp. All data is delimited by commas.
+
+- `my_timestamps_p.txt` (single file with all timestamps)
+  - [ t ]
+  - Note: single column
+- `imu_measurements.txt` (Data from IMU)
+ - [ t, ax_raw, ay_raw, az_raw, wz_raw, wy_raw, wz_raw, ax_calib, ay_calib, az_calib, wz_calib, wy_calib, wz_calib]
+- `evolving_state.txt` (Data from VIO)
+ - [ t, qw, qx, qy, qz, x, y, z, vx, vy, vz]
+- `calib_state.txt` (?)
+ - ?
+- `atttitude.txt` (AHRS attitude)
+ - [ t, qw, qx, qy, qz ]
+
 # Network training and evaluation
 
 ## For training or evaluation of one model
