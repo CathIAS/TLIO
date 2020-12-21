@@ -62,8 +62,9 @@ Timestamps (t) are in microseconds (us). Each row corresponds to a single timest
   - [ t, ax_raw, ay_raw, az_raw, ax_calib, ay_calib, az_calib, wx_raw, wy_raw, wz_raw, wx_calib, wy_calib, wz_calib]
 - `evolving_state.txt` (Data from VIO)
   - [ t, qw, qx, qy, qz, x, y, z, vx, vy, vz]
-- `calib_state.txt` (?)
-  - ?
+- `calib_state.txt`
+  - [t, accelScale1:10, gyroScale10:19, gyroGSense19:28, accelBias28:31, gyroBias31:34]
+  - A single row with IMU calibration information
 - `atttitude.txt` (AHRS attitude)
   - [ t, qw, qx, qy, qz ]
 
