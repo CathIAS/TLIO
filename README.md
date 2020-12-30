@@ -67,7 +67,7 @@ Timestamps (t) are in microseconds (us). Each row corresponds to a single timest
   - Note: not interpolated, raw IMU timestamps. Every timestamp in my_timestamps_p.txt will have a corresponding timestamp in this file
 - `calib_state.txt` VIO calibration states at image rate (used in data_io.py)
   - [t, acc_scale_inv (9), gyr_scale_inv (9), gyro_g_sense (9), b_acc (3), b_gyr (3)]
-  - Note: A single row with IMU calibration information.
+  - Note: Changing calibration states from VIO.
 - `atttitude.txt` AHRS attitude from IMU
   - [ t, qw, qx, qy, qz ]
 
