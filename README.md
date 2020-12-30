@@ -59,7 +59,6 @@ Timestamps (t) are in microseconds (us). Each row corresponds to a single timest
   - [ t ]
   - Note: single column, skipped first 20 frames
 - `imu_measurements.txt` IMU data, raw and calibrated using VIO calibration
-  - [ t, ax_raw, ay_raw, az_raw, ax_calib, ay_calib, az_calib, wx_raw, wy_raw, wz_raw, wx_calib, wy_calib, wz_calib]
   - [t, acc_raw (3), acc_cal (3), gyr_raw (3), gyr_cal (3), has_vio] 
   - Note: has been interpolated evenly between images. Every timestamp in my_timestamps_p.txt will have a corresponding timestamp in this file (has_vio==1)
 - `evolving_state.txt` VIO evolving states at IMU rate.
