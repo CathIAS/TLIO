@@ -55,17 +55,20 @@ The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires i
 ### Used to generate `data.hdf5`
 Timestamps (t) are in microseconds (us). Each row corresponds to a single timestamp. All data is delimited by commas.
 
-- `my_timestamps_p.txt` (single file with all timestamps)
+- `my_timestamps_p.txt` VIO timestamps. Used to select data time range.
   - [ t ]
-  - Note: single column
-- `imu_measurements.txt` (Data from IMU)
+  - Note: single column, skipped first 20 frames
+- `imu_measurements.txt` IMU data, raw and calibrated using VIO calibration
   - [ t, ax_raw, ay_raw, az_raw, ax_calib, ay_calib, az_calib, wx_raw, wy_raw, wz_raw, wx_calib, wy_calib, wz_calib]
-- `evolving_state.txt` (Data from VIO)
-  - [ t, qw, qx, qy, qz, x, y, z, vx, vy, vz]
-- `calib_state.txt`
-  - [t, accelScale1:10, gyroScale10:19, gyroGSense19:28, accelBias28:31, gyroBias31:34]
-  - A single row with IMU calibration information
-- `atttitude.txt` (AHRS attitude)
+  - [t, acc_raw (3), acc_cal (3), gyr_raw (3), gyr_cal (3), has_vio] 
+  - Note: has been interpolated evenly between images. Every timestamp in my_timestamps_p.txt will have a corresponding timestamp in this file (has_vio==1)
+- `evolving_state.txt` VIO evolving states at IMU rate.
+  - [t, q_wxyz (4), p (3), v (3)]
+  - Note: not interpolated, raw IMU timestamps. Every timestamp in my_timestamps_p.txt will have a corresponding timestamp in this file
+- `calib_state.txt` VIO calibration states at image rate (used in data_io.py)
+  - [t, acc_scale_inv (9), gyr_scale_inv (9), gyro_g_sense (9), b_acc (3), b_gyr (3)]
+  - Note: A single row with IMU calibration information.
+- `atttitude.txt` AHRS attitude from IMU
   - [ t, qw, qx, qy, qz ]
 
 # Network training and evaluation
