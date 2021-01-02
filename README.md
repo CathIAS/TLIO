@@ -68,7 +68,7 @@ Timestamps (t) are in microseconds (us). Each row corresponds to data in a singl
   - [t, acc_scale_inv (9), gyr_scale_inv (9), gyro_g_sense (9), b_acc (3), b_gyr (3)]
   - Note: Changing calibration states from VIO.
 - `atttitude.txt` AHRS attitude from IMU
-  - [ t, qw, qx, qy, qz ]
+  - [t, qw, qx, qy, qz]
 
 # Network training and evaluation
 
