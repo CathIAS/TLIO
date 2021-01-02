@@ -55,7 +55,7 @@ The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires i
 ### Used to generate `data.hdf5`
 Timestamps (t) are in microseconds (us). Each row corresponds to data in a single timestamp. All data is delimited by commas.
 
-- `my_timestamps_p.txt` VIO timestamps. Used to select data time range.
+- `my_timestamps_p.txt` VIO timestamps.
   - [ t ]
   - Note: single column, skipped first 20 frames
 - `imu_measurements.txt` IMU data, raw and calibrated using VIO calibration
