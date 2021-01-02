@@ -49,7 +49,7 @@ The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires i
 
 ### Dataset lists
 
-`test.txt`, `train.txt` and `val.txt` are all the same. Each row is the name of a sequence to be used for one of the purposes of test, train or validate. The name should be the same of the sequence directory for example `seq1` and `seq22` as above.
+`test.txt`, `train.txt` and `val.txt` are list files specifying the split with one sequence name per row in the testing, training and validation datasets respectively. The name should be the same of the sequence directory for example `seq1` and `seq22` as above.
 
 
 ### Used to generate `data.hdf5`
