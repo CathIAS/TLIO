@@ -61,7 +61,7 @@ Timestamps (t) are in microseconds (us). Each row corresponds to data in a singl
 - `imu_measurements.txt` raw and calibrated IMU data
   - [t, acc_raw (3), acc_cal (3), gyr_raw (3), gyr_cal (3), has_vio] 
  - Note: calibration through VIO calibration states. The data has been interpolated evenly between images around 1000Hz. Every timestamp in my_timestamps_p.txt will have a corresponding timestamp in this file (has_vio==1). 
-- `evolving_state.txt` VIO evolving states at IMU rate.
+- `evolving_state.txt` ground truth (VIO) states at IMU rate.
   - [t, q_wxyz (4), p (3), v (3)]
   - Note: VIO state estimates with IMU integration. Timestamps are from raw IMU measurements.
 - `calib_state.txt` VIO calibration states at image rate (used in `data_io.py`)
