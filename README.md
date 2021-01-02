@@ -56,7 +56,7 @@ The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires i
 Timestamps (t) are in microseconds (us). Each row corresponds to data in a single timestamp. All data is delimited by commas.
 
 - `my_timestamps_p.txt` VIO timestamps.
-  - [ t ]
+  - [t]
   - Note: single column, skipped first 20 frames
 - `imu_measurements.txt` IMU data, raw and calibrated using VIO calibration
   - [t, acc_raw (3), acc_cal (3), gyr_raw (3), gyr_cal (3), has_vio] 
