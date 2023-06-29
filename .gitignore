@@ -1,0 +1,8 @@
+local_data
+data
+__pycache__
+*.pyc
+*.swp
+*.swo
+models
+*outputs*

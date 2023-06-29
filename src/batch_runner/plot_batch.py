@@ -19,11 +19,6 @@ if __name__ == "__main__":
         help="Path to dataset directory",
     )
     io_groups.add_argument(
-        "--data_list",
-        type=str,
-        default=f"{homedir}/vo_output/split/golden/golden_test.txt",
-    )
-    io_groups.add_argument(
         "--runname_globbing",
         type=str,
         default="*hz-*s-*s*",
@@ -66,8 +61,6 @@ if __name__ == "__main__":
             "plot_filter_state.py",
             "--root_dir",
             f"{args.root_dir}",
-            "--data_list",
-            f"{args.data_list}",
             "--log_dir",
             f"{args.filter_dir + '/' + name_run}",
             "--save_fig",

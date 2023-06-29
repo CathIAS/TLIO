@@ -241,7 +241,6 @@ class ResNet1D(nn.Module):
     def forward(self, x):
         x = self.input_block(x)
         x = self.residual_groups(x)
-        x1 = self.output_block1(x)  # mean
-        x2 = self.output_block2(x)  # covariance s = log(sigma)
-        # x2 = torch.nn.Identity(x2)  # s_hat = sigmoid(s), bound the log
-        return x1, x2
+        mean = self.output_block1(x)  # mean
+        logstd = self.output_block2(x)  # covariance sigma = exp(2 * logstd)
+        return mean, logstd

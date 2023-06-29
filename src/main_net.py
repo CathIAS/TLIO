@@ -14,25 +14,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # ------------------ directories -----------------
-    parser.add_argument("--train_list", type=str, default=None)
-    parser.add_argument("--val_list", type=str, default=None)
-    parser.add_argument("--test_list", type=str, default=None)
+    # NOTE now they are assumed to be under root_dir with new format
+    #parser.add_argument("--train_list", type=str, default=None)
+    #parser.add_argument("--val_list", type=str, default=None)
+    #parser.add_argument("--test_list", type=str, default=None)
     parser.add_argument(
-        "--root_dir", type=str, default=None, help="Path to data directory"
+        "--root_dir", type=str, 
+        default="local_data/tlio_golden", help="Path to data directory"
     )
-    parser.add_argument("--out_dir", type=str, default=None)
+    parser.add_argument("--out_dir", type=str, default="outputs/resnet_seq")
     parser.add_argument("--model_path", type=str, default=None)
     parser.add_argument("--continue_from", type=str, default=None)
     parser.add_argument("--out_name", type=str, default=None)
 
     # ------------------ architecture and training -----------------
     parser.add_argument("--lr", type=float, default=1e-04)
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=1024)
     parser.add_argument("--epochs", type=int, default=10000, help="max num epochs")
     parser.add_argument("--arch", type=str, default="resnet")
     parser.add_argument("--cpu", action="store_true")
     parser.add_argument("--input_dim", type=int, default=6)
     parser.add_argument("--output_dim", type=int, default=3)
+    parser.add_argument("-j", "--workers", type=int, default=4)
+    parser.add_argument("--dataset_style", type=str, default="mmap", 
+            help="'ram', 'mmap', or 'iter'. See dataloader/tlio_data.py for more details")
+    add_bool_arg(parser, "persistent_workers", default=True)
 
     # ------------------ commons -----------------
     parser.add_argument(
@@ -62,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample_freq", type=float, default=20.0)  # hz
 
     # ----- plotting and evaluation -----
-    add_bool_arg(parser, "save_plot", default=False)
+    add_bool_arg(parser, "save_plot", default=True)
     parser.add_argument("--rpe_window", type=float, default="2.0")  # s
 
     args = parser.parse_args()

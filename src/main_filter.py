@@ -18,9 +18,7 @@ import numpy as np
 from numba.core.errors import NumbaPerformanceWarning
 from tracker.imu_tracker_runner import ImuTrackerRunner
 from utils.argparse_utils import add_bool_arg
-from utils.git_version import git_version
 from utils.logging import logging
-from utils.profile import profile
 
 
 warnings.filterwarnings("ignore", category=NumbaPerformanceWarning)
@@ -33,9 +31,9 @@ if __name__ == "__main__":
     io_groups = parser.add_argument_group("io")
 
     io_groups.add_argument(
-        "--root_dir", type=str, default=None, help="Path to data directory"
+        "--root_dir", type=str, 
+        default="local_data/tlio_golden", help="Path to data directory"
     )
-    io_groups.add_argument("--data_list", type=str, default=None)
     io_groups.add_argument("--dataset_number", type=int, default=None)
     io_groups.add_argument("--model_path", type=str, default=None)
     io_groups.add_argument("--model_param_path", type=str, default=None, required=True)
@@ -47,6 +45,8 @@ if __name__ == "__main__":
         "--start_from_ts", type=int, default=None
     )  # dataloader loading data from timestamp (us)
 
+    add_bool_arg(io_groups, "visualize", default=False, 
+            help="Opens up a visualization window")
     add_bool_arg(io_groups, "erase_old_log", default=False)
 
     # ----------------------- network params -----------------------
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     )  # gyro bias noise  rad/s/sqrt(s)
 
     filter_group.add_argument(
-        "--init_attitude_sigma", type=float, default=10.0 / 180.0 * np.pi
+        "--init_attitude_sigma", type=float, default=1.0 / 180.0 * np.pi
     )  # rad
     filter_group.add_argument(
         "--init_yaw_sigma", type=float, default=0.1 / 180.0 * np.pi
@@ -82,10 +82,10 @@ if __name__ == "__main__":
     filter_group.add_argument(
         "--init_bg_sigma", type=float, default=0.0001
     )  # rad/s  0.001
-    filter_group.add_argument("--init_ba_sigma", type=float, default=0.2)  # m/s^2  0.02
+    filter_group.add_argument("--init_ba_sigma", type=float, default=0.02)  # m/s^2  0.02
     filter_group.add_argument("--g_norm", type=float, default=9.81)
 
-    filter_group.add_argument("--meascov_scale", type=float, default=1.0)
+    filter_group.add_argument("--meascov_scale", type=float, default=10.0)
 
     add_bool_arg(
         filter_group, "initialize_with_vio", default=True
@@ -129,7 +129,6 @@ if __name__ == "__main__":
     debug_groups.add_argument(
         "--sim_meas_cov_val_z", type=float, default=np.power(0.01, 2.0)
     )
-    add_bool_arg(debug_groups, "do_profile", default=False, help="Run the profiler")
 
     args = parser.parse_args()
 
@@ -138,7 +137,8 @@ if __name__ == "__main__":
     logging.info("Program options:")
     logging.info(pprint(vars(args)))
     # run filter
-    with open(args.data_list) as f:
+    data_list = os.path.join(args.root_dir, "test_list.txt")
+    with open(data_list) as f:
         data_names = [
             s.strip().split("," or " ")[0]
             for s in f.readlines()
@@ -149,30 +149,28 @@ if __name__ == "__main__":
         os.mkdir(args.out_dir)
 
     param_dict = vars(args)
-    param_dict["git_version"] = git_version()
     param_dict["date"] = str(datetime.datetime.now())
     with open(args.out_dir + "/parameters.json", "w") as parameters_file:
         parameters_file.write(json.dumps(param_dict, indent=4, sort_keys=True))
 
     # load offline calibration for IMU
-    with profile(filename="./profile.prof", enabled=args.do_profile):
-        if args.dataset_number is not None:
-            logging.info("Running in one-shot mode")
-            logging.info("Using dataset {}".format(data_names[args.dataset_number]))
-            trackerRunner = ImuTrackerRunner(args, data_names[args.dataset_number])
-            trackerRunner.run_tracker(args)
-        else:
-            logging.info("Running in batch mode")
-            # add metadata for logging
-            n_data = len(data_names)
-            for i, name in enumerate(data_names):
-                logging.info(f"Processing {i} / {n_data} dataset {name}")
-                try:
-                    trackerRunner = ImuTrackerRunner(args, name)
-                    trackerRunner.run_tracker(args)
-                except FileExistsError as e:
-                    print(e)
-                    continue
-                except OSError as e:
-                    print(e)
-                    continue
+    if args.dataset_number is not None:
+        logging.info("Running in one-shot mode")
+        logging.info("Using dataset {}".format(data_names[args.dataset_number]))
+        trackerRunner = ImuTrackerRunner(args, data_names[args.dataset_number])
+        trackerRunner.run_tracker(args)
+    else:
+        logging.info("Running in batch mode")
+        # add metadata for logging
+        n_data = len(data_names)
+        for i, name in enumerate(data_names):
+            logging.info(f"Processing {i} / {n_data} dataset {name}")
+            try:
+                trackerRunner = ImuTrackerRunner(args, name)
+                trackerRunner.run_tracker(args)
+            except FileExistsError as e:
+                print(e)
+                continue
+            except OSError as e:
+                print(e)
+                continue

@@ -4,114 +4,16 @@ import os.path as osp
 import numpy as np
 import pandas as pd
 import torch
-from dataloader.dataset_fb import FbSequenceDataset
+#from dataloader.dataset_fb import FbSequenceDataset
+from dataloader.tlio_data import TlioData
+from dataloader.memmapped_sequences_dataset import MemMappedSequencesDataset
 from network.losses import get_loss
 from network.model_factory import get_model
 from torch.utils.data import DataLoader
+from utils.dotdict import dotdict
+from utils.utils import to_device
 from utils.logging import logging
-
-
-def get_datalist(list_path):
-    with open(list_path) as f:
-        data_list = [s.strip() for s in f.readlines() if len(s.strip()) > 0]
-    return data_list
-
-
-def torch_to_numpy(torch_arr):
-    return torch_arr.cpu().detach().numpy()
-
-
-def get_inference(network, data_loader, device, epoch):
-    """
-    Obtain attributes from a data loader given a network state
-    Outputs all targets, predicts, predicted covariance params, and losses in numpy arrays
-    Enumerates the whole data loader
-    """
-    targets_all, preds_all, preds_cov_all, losses_all = [], [], [], []
-    network.eval()
-
-    for bid, (feat, targ, _, _) in enumerate(data_loader):
-        pred, pred_cov = network(feat.to(device))
-        targ = targ.to(device)
-        loss = get_loss(pred, pred_cov, targ, epoch)
-
-        targets_all.append(torch_to_numpy(targ))
-        preds_all.append(torch_to_numpy(pred))
-        preds_cov_all.append(torch_to_numpy(pred_cov))
-        losses_all.append(torch_to_numpy(loss))
-
-    targets_all = np.concatenate(targets_all, axis=0)
-    preds_all = np.concatenate(preds_all, axis=0)
-    preds_cov_all = np.concatenate(preds_cov_all, axis=0)
-    losses_all = np.concatenate(losses_all, axis=0)
-    attr_dict = {
-        "targets": targets_all,
-        "preds": preds_all,
-        "preds_cov": preds_cov_all,
-        "losses": losses_all,
-    }
-    return attr_dict
-
-
-def arg_conversion(args):
-    """ Conversions from time arguments to data size """
-
-    if not (args.past_time * args.imu_freq).is_integer():
-        raise ValueError(
-            "past_time cannot be represented by integer number of IMU data."
-        )
-    if not (args.window_time * args.imu_freq).is_integer():
-        raise ValueError(
-            "window_time cannot be represented by integer number of IMU data."
-        )
-    if not (args.future_time * args.imu_freq).is_integer():
-        raise ValueError(
-            "future_time cannot be represented by integer number of IMU data."
-        )
-    if not (args.imu_freq / args.sample_freq).is_integer():
-        raise ValueError("sample_freq must be divisible by imu_freq.")
-
-    data_window_config = dict(
-        [
-            ("past_data_size", int(args.past_time * args.imu_freq)),
-            ("window_size", int(args.window_time * args.imu_freq)),
-            ("future_data_size", int(args.future_time * args.imu_freq)),
-            ("step_size", int(args.imu_freq / args.sample_freq)),
-        ]
-    )
-    net_config = {
-        "in_dim": (
-            data_window_config["past_data_size"]
-            + data_window_config["window_size"]
-            + data_window_config["future_data_size"]
-        )
-        // 32
-        + 1
-    }
-
-    # Display
-    np.set_printoptions(formatter={"all": "{:.6f}".format})
-    logging.info(f"Training/testing with {args.imu_freq} Hz IMU data")
-    logging.info(
-        "Size: "
-        + str(data_window_config["past_data_size"])
-        + "+"
-        + str(data_window_config["window_size"])
-        + "+"
-        + str(data_window_config["future_data_size"])
-        + ", "
-        + "Time: "
-        + str(args.past_time)
-        + "+"
-        + str(args.window_time)
-        + "+"
-        + str(args.future_time)
-    )
-    logging.info("Perturb on bias: %s" % args.do_bias_shift)
-    logging.info("Perturb on gravity: %s" % args.perturb_gravity)
-    logging.info("Sample frequency: %s" % args.sample_freq)
-    return data_window_config, net_config
-
+from network.test import torch_to_numpy, get_inference, get_datalist, arg_conversion, get_inference
 
 def net_eval(args):
     """
@@ -122,8 +24,6 @@ def net_eval(args):
     try:
         if args.root_dir is None:
             raise ValueError("root_dir must be specified.")
-        if args.test_list is None:
-            raise ValueError("test_list must be specified.")
         if args.out_dir is not None:
             if not osp.isdir(args.out_dir):
                 os.makedirs(args.out_dir)
@@ -161,7 +61,8 @@ def net_eval(args):
     )
     all_mahalanobis = []
 
-    test_list = get_datalist(args.test_list)
+    test_list = get_datalist(os.path.join(args.root_dir, "test_list.txt"))
+
     blacklist = ["loop_hidacori058_20180519_1525"]
     # blacklist = []
     for data in test_list:
@@ -171,9 +72,18 @@ def net_eval(args):
         logging.info(f"Processing {data}...")
 
         try:
-            seq_dataset = FbSequenceDataset(
-                args.root_dir, [data], args, data_window_config, mode="eval"
+            #seq_dataset = FbSequenceDataset(
+            #    args.root_dir, [data], args, data_window_config, mode="eval"
+            #)
+
+            seq_dataset = MemMappedSequencesDataset(
+                args.root_dir,
+                "test",
+                data_window_config,
+                sequence_subset=[data],
+                store_in_ram=True,
             )
+
             seq_loader = DataLoader(seq_dataset, batch_size=1024, shuffle=False)
         except OSError as e:
             logging.error(e)

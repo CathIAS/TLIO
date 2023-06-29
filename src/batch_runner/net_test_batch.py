@@ -20,11 +20,6 @@ if __name__ == "__main__":
         help="Path to dataset directory",
     )
     io_groups.add_argument(
-        "--data_list",
-        type=str,
-        default=f"{homedir}/vo_output/split/golden/golden_test.txt",
-    )
-    io_groups.add_argument(
         "--model_globbing",
         type=str,
         default="../models/200hz/1s-1s*/checkpoint_*.pt",
@@ -36,6 +31,7 @@ if __name__ == "__main__":
         default=f"./all_output/",
         help="Path to dataset directory",
     )
+    parser.add_argument("--arch", type=str, default="resnet")
     io_groups.add_argument("--save_plot", action="store_true")
     io_groups.add_argument("--concatenate", action="store_true")
 
@@ -71,10 +67,10 @@ if __name__ == "__main__":
             "main_net.py",
             "--mode",
             "test",
-            "--test_list",
-            f"{args.data_list}",
             "--root_dir",
             f"{args.root_dir}",
+            "--arch",
+            f"{args.arch}",
             "--model_path",
             f"{m}",
             "--out_dir",

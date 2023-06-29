@@ -13,24 +13,9 @@ import seaborn as sns
 from tabulate import tabulate
 
 
-blacklisted_datasets = ["loop_hidacori058_20180519_1525"]
-
-blacklisted_model = [
-    "200hz-retrain-05s-1s",
-    "200hz-retrain-05s-2s",
-    "200hz-retrain-05s-3s",
-    "200hz-retrain-1s-2s",
-    "200hz-retrain-1s-3s",
-    "200hz-retrain-2s-3s",
-]
-
-golden_shared_dataset = [
-    "loop_hidacori058_20180524_1121",
-    "loop_hidacori0511_20180815_1152",
-    "loop_hidacori059_20180522_1356",
-    "loop_hidacori0511_20180808_1011",
-    "loop_hidacori0512_20180731_1707",
-]
+blacklisted_datasets = []
+blacklisted_model = []
+golden_shared_dataset = []
 
 
 ############## Loading data ###############
@@ -73,9 +58,9 @@ def load_folder_to_dataframe(name_run, split, folder):
         d["hardware"] = [
             x
             for x in d.index.get_level_values(0)
-            .str.split("_")
-            .str.get(1)
-            .str.replace("hidacori", "")
+            #.str.split("_")
+            #.str.get(1)
+            #.str.replace("hidacori", "")
         ]
         d["split"] = split
         d["name_run"] = osp.basename(name_run)
@@ -93,10 +78,10 @@ def load_folder_dict(ndict, split):
     nmax_dataset = 0
     l = []
     for (k, v) in ndict.items():
-        try:
-            l.append(load_folder_to_dataframe(k, split, v))
-        except:
-            print("Could not read from ", v)
+        #try:
+        l.append(load_folder_to_dataframe(k, split, v))
+        #except:
+        #    print("Could not read from ", v)
     dataset_length = [len(el["dataset"].unique()) for el in l]
     nmax_dataset = max(dataset_length)
     dataset_sets = [set(el["dataset"].unique()) for el in l]
@@ -477,13 +462,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--glob_dataset",
         type=str,
-        default="../all_net_output_20hz/*/",
+        default="",
         help="globbing pattern for dataset directories",
     )
     args = parser.parse_args()
 
     dct = {osp.dirname(p): p for p in glob.glob(args.glob_dataset)}
-    print(dct)
+    print("Found the following tested model", dct)
 
     d = load_folder_dict(dct, "test")
 

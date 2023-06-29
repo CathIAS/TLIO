@@ -268,45 +268,43 @@ def run(args, dataset):
         ronin_p = interp1d(ronin_ts, ronin_p, axis=0)(ts)
 
     # get vio states
-    if args.plot_sim is False:
+    if not args.plot_sim:
         if os.path.exists(os.path.join(results_folder, "vio_states.npy")):
             vio_states = np.load(os.path.join(results_folder, "vio_states.npy"))
             vio_euls = vio_states[:, :3]
             vio_p = vio_states[:, 3:6]
             vio_v = vio_states[:, 6:9]
-            vio_ba = vio_states[:, 9:12]
-            vio_bg = vio_states[:, 12:15]
+            ba = vio_states[:, 9:12]
+            bg = vio_states[:, 12:15]
             vio_disp = vio_states[:, 15:18]
-            vio_ba_b = vio_states[:, 18:21]
-            vio_bg_b = vio_states[:, 21:24]
-            vio_accelScaleInv_flat = vio_states[:, 24:33]
-            vio_gyroScaleInv_flat = vio_states[:, 33:42]
-            vio_accelScaleInv = vio_accelScaleInv_flat.reshape((-1, 3, 3))
-            vio_gyroScaleInv = vio_gyroScaleInv_flat.reshape((-1, 3, 3))
+            ba_b = vio_states[:, 18:21]
+            bg_b = vio_states[:, 21:24]
+            accelScaleInv_flat = vio_states[:, 24:33]
+            gyroScaleInv_flat = vio_states[:, 33:42]
+            accelScaleInv = accelScaleInv_flat.reshape((-1, 3, 3))
+            gyroScaleInv = gyroScaleInv_flat.reshape((-1, 3, 3))
         else:
-            vio_states = np.loadtxt(
-                os.path.join(args.root_dir, dataset, "evolving_state.txt"),
-                delimiter=",",
-            )
-            vio_calibs = np.loadtxt(
-                os.path.join(args.root_dir, dataset, "calib_state.txt"), delimiter=","
-            )
-            vio_ts = vio_states[:, 0] * 1e-6
-            vio_rq = vio_states[:, 1:5]
-            vio_p = vio_states[:, 5:8]
-            vio_v = vio_states[:, 8:11]
-            vio_r = Rotation.from_quat(
-                np.concatenate(
-                    [vio_rq[:, 1:4], np.expand_dims(vio_rq[:, 0], axis=1)], axis=1
-                )
-            )
+            data = np.load(osp.join(args.root_dir, dataset, "imu0_resampled.npy"))
+            vio_ts = data[:, 0] * 1e-6
+            vio_rq = data[:,-10:-6]
+            vio_p = data[:,-6:-3]
+            vio_v = data[:,-3:]
+            vio_r = Rotation.from_quat(vio_rq)
             vio_euls = vio_r.as_euler("xyz", degrees=True)
-            vio_calib_ts = vio_calibs[:, 0] * 1e-6
-            vio_accelScaleInv = vio_calibs[:, 1:10].reshape((-1, 3, 3))
-            vio_gyroScaleInv = vio_calibs[:, 10:19].reshape((-1, 3, 3))
-            vio_gyroGSense = vio_calibs[:, 19:28].reshape((-1, 3, 3))
-            vio_ba = vio_calibs[:, 28:31]
-            vio_bg = vio_calibs[:, 31:34]
+            
+            vio_calib_ts = vio_ts
+
+            with open(osp.join(args.root_dir, dataset, "calibration.json"), 'r') as f:
+                calib_json = json.load(f)
+                
+            accelBias = np.array(calib_json["Accelerometer"]["Bias"]["Offset"])[None,:]
+            gyroBias = np.array(calib_json["Gyroscope"]["Bias"]["Offset"])[None,:]
+            accelScaleInv = np.array(
+                calib_json["Accelerometer"]["Model"]["RectificationMatrix"]
+            )[None,:,:]
+            gyroScaleInv = np.array(
+                calib_json["Gyroscope"]["Model"]["RectificationMatrix"]
+            )[None,:,:]
 
             vio_pj_idx = np.searchsorted(vio_ts, ts) - 1
             vio_pi_idx = np.searchsorted(vio_ts, ts - args.displacement_time) - 1
@@ -342,52 +340,25 @@ def run(args, dataset):
             vio_p = interp1d(vio_ts, vio_p, axis=0)(ts)
             vio_v = interp1d(vio_ts, vio_v, axis=0)(ts)
 
+            accelScaleInv_flat = accelScaleInv.reshape((1, 9))
+            gyroScaleInv_flat = gyroScaleInv.reshape((1, 9))
+
+            # We only have offline calib so just repeat it for all the timestamps
+            ba = np.tile(accelBias, [ts.shape[0], 1])
+            bg = np.tile(gyroBias, [ts.shape[0], 1])
+            accelScaleInv_flat = np.tile(accelScaleInv_flat, [ts.shape[0], 1])
+            gyroScaleInv_flat = np.tile(gyroScaleInv_flat, [ts.shape[0], 1])
+            accelScaleInv = accelScaleInv_flat.reshape((-1, 3, 3))
+            gyroScaleInv = gyroScaleInv_flat.reshape((-1, 3, 3))
+
             # This compute bias in non scaled sensor frame (I think)
-            vio_accelScaleInv_flat = vio_accelScaleInv.reshape((-1, 9))
-            vio_gyroScaleInv_flat = vio_gyroScaleInv.reshape((-1, 9))
-            if vio_calib_ts[0] > ts[0]:
-                vio_calib_ts = np.insert(vio_calib_ts, 0, ts[0])
-                vio_ba = np.concatenate([vio_ba[0].reshape(1, 3), vio_ba], axis=0)
-                vio_bg = np.concatenate([vio_bg[0].reshape(1, 3), vio_bg], axis=0)
-                vio_accelScaleInv_flat = np.concatenate(
-                    [vio_accelScaleInv_flat[0].reshape(1, 9), vio_accelScaleInv_flat],
-                    axis=0,
-                )
-                vio_gyroScaleInv_flat = np.concatenate(
-                    [vio_gyroScaleInv_flat[0].reshape(1, 9), vio_gyroScaleInv_flat],
-                    axis=0,
-                )
-            if vio_calib_ts[-1] < ts[-1]:
-                vio_calib_ts = np.insert(vio_calib_ts, -1, ts[-1])
-                vio_ba = np.concatenate([vio_ba, vio_ba[-1].reshape(1, 3)], axis=0)
-                vio_bg = np.concatenate([vio_bg, vio_bg[-1].reshape(1, 3)], axis=0)
-                vio_accelScaleInv_flat = np.concatenate(
-                    [vio_accelScaleInv_flat, vio_accelScaleInv_flat[-1].reshape(1, 9)],
-                    axis=0,
-                )
-                vio_gyroScaleInv_flat = np.concatenate(
-                    [vio_gyroScaleInv_flat, vio_gyroScaleInv_flat[-1].reshape(1, 9)],
-                    axis=0,
-                )
-
-            vio_ba = interp1d(vio_calib_ts, vio_ba, axis=0)(ts)
-            vio_bg = interp1d(vio_calib_ts, vio_bg, axis=0)(ts)
-            vio_accelScaleInv_flat = interp1d(
-                vio_calib_ts, vio_accelScaleInv_flat, axis=0
-            )(ts)
-            vio_gyroScaleInv_flat = interp1d(
-                vio_calib_ts, vio_gyroScaleInv_flat, axis=0
-            )(ts)
-            vio_accelScaleInv = vio_accelScaleInv_flat.reshape((-1, 3, 3))
-            vio_gyroScaleInv = vio_gyroScaleInv_flat.reshape((-1, 3, 3))
-
-            vio_ba_temp = np.expand_dims(vio_ba, axis=-1)
-            vio_bg_temp = np.expand_dims(vio_bg, axis=-1)
-            vio_ba_b = np.squeeze(
-                np.matmul(np.linalg.inv(vio_accelScaleInv), vio_ba_temp)
+            ba_temp = np.expand_dims(ba, axis=-1)
+            bg_temp = np.expand_dims(bg, axis=-1)
+            ba_b = np.squeeze(
+                np.matmul(np.linalg.inv(accelScaleInv), ba_temp)
             )
-            vio_bg_b = np.squeeze(
-                np.matmul(np.linalg.inv(vio_gyroScaleInv), vio_bg_temp)
+            bg_b = np.squeeze(
+                np.matmul(np.linalg.inv(gyroScaleInv), bg_temp)
             )
 
             if save_vio_states:
@@ -396,13 +367,13 @@ def run(args, dataset):
                         vio_euls,
                         vio_p,
                         vio_v,
-                        vio_ba,
-                        vio_bg,
+                        ba,
+                        bg,
                         vio_disp,
-                        vio_ba_b,
-                        vio_bg_b,
-                        vio_accelScaleInv_flat,
-                        vio_gyroScaleInv_flat,
+                        ba_b,
+                        bg_b,
+                        accelScaleInv_flat,
+                        gyroScaleInv_flat,
                     ],
                     axis=1,
                 )
@@ -473,32 +444,36 @@ def run(args, dataset):
         ref_type = "vio"
         ref_p = vio_p
         ref_v = vio_v
-        ref_bg = vio_bg
-        ref_ba = vio_ba
+        ref_bg = bg
+        ref_ba = ba
         ref_euls = vio_euls
         ref_disp = vio_disp
 
     # obtain biases in the body frame in the same unit
-    attitude_filter_path = osp.join(args.root_dir, dataset, "atttitude.txt")
-    (
-        init_gyroScaleInv,
-        init_gyroBias,
-        init_gyroGSense,
-        init_accelScaleInv,
-        init_accelBias,
-    ) = load_aekf_calibration(attitude_filter_path)
-
-    if args.body_bias:
-        ba_temp = np.expand_dims(ba, axis=-1)
-        bg_temp = np.expand_dims(bg, axis=-1)
-        ba_b = np.squeeze(np.matmul(np.linalg.inv(init_accelScaleInv), ba_temp))
-        bg_b = np.squeeze(np.matmul(np.linalg.inv(init_gyroScaleInv), bg_temp))
-        ba = ba_b
-        bg = bg_b
+#    attitude_filter_path = osp.join(args.root_dir, dataset, "atttitude.txt")
+#    (
+#        init_gyroScaleInv,
+#        init_gyroBias,
+#        init_gyroGSense,
+#        init_accelScaleInv,
+#        init_accelBias,
+#    ) = load_aekf_calibration(attitude_filter_path)
+#
+#    if args.body_bias:
+#        ba_temp = np.expand_dims(ba, axis=-1)
+#        bg_temp = np.expand_dims(bg, axis=-1)
+#        ba_b = np.squeeze(np.matmul(np.linalg.inv(init_accelScaleInv), ba_temp))
+#        bg_b = np.squeeze(np.matmul(np.linalg.inv(init_gyroScaleInv), bg_temp))
+#        ba = ba_b
+#        bg = bg_b
 
     # load aekf rotation
-    aekf_ts, aekf_R = load_aekf_rotation(attitude_filter_path)
-    aekf_euls = unwrap_rpy(aekf_R.as_euler("xyz", degrees=True))
+    #aekf_ts, aekf_R = load_aekf_rotation(attitude_filter_path)
+    #aekf_euls = unwrap_rpy(aekf_R.as_euler("xyz", degrees=True))
+    # Hack since we don't have aekf data
+    aekf_ts = ts
+    aekf_euls = vio_euls
+
     # plotting
     N = ts.shape[0]
     start_idx = 2000  # 2 s
@@ -626,89 +601,89 @@ def run(args, dataset):
 
     # Plot results
     idxs = slice(start_idx, end_idx)
-
-    if not args.plot_sim:
-        plt.figure("Calibration accelerometer vio vs init")
-        plt.plot(ts, vio_accelScaleInv[:, 0, 0], label="1")
-        plt.plot(ts, vio_accelScaleInv[:, 1, 1], label="2")
-        plt.plot(ts, vio_accelScaleInv[:, 2, 2], label="3")
-        plt.plot(ts, vio_accelScaleInv[:, 0, 1], label="12")
-        plt.plot(ts, vio_accelScaleInv[:, 0, 2], label="13")
-        plt.plot(ts, vio_accelScaleInv[:, 1, 2], label="23")
-        plt.plot(
-            ts,
-            np.ones_like(vio_accelScaleInv[:, 0, 0]) * init_accelScaleInv[0, 0],
-            label="1",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_accelScaleInv[:, 1, 1]) * init_accelScaleInv[1, 1],
-            label="2",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_accelScaleInv[:, 2, 2]) * init_accelScaleInv[2, 2],
-            label="2",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_accelScaleInv[:, 0, 1]) * init_accelScaleInv[0, 1],
-            label="12",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_accelScaleInv[:, 0, 2]) * init_accelScaleInv[0, 2],
-            label="13",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_accelScaleInv[:, 1, 2]) * init_accelScaleInv[1, 2],
-            label="23",
-        )
-        plt.grid(True)
-        plt.legend(loc="upper center")
-        plt.figure()
-        g = np.einsum("kip,p->ki", vio_accelScaleInv, [0, 9.81, 0])
-        plt.plot(ts, g[:, 1])
-        plt.figure("Calibration gyrometer vio vs init")
-        plt.plot(ts, vio_gyroScaleInv[:, 0, 0], label="1")
-        plt.plot(ts, vio_gyroScaleInv[:, 1, 1], label="2")
-        plt.plot(ts, vio_gyroScaleInv[:, 2, 2], label="3")
-        plt.plot(ts, vio_gyroScaleInv[:, 0, 1], label="12")
-        plt.plot(ts, vio_gyroScaleInv[:, 0, 2], label="13")
-        plt.plot(ts, vio_gyroScaleInv[:, 1, 2], label="23")
-        plt.plot(
-            ts,
-            np.ones_like(vio_gyroScaleInv[:, 0, 0]) * init_gyroScaleInv[0, 0],
-            label="1",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_gyroScaleInv[:, 1, 1]) * init_gyroScaleInv[1, 1],
-            label="2",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_gyroScaleInv[:, 2, 2]) * init_gyroScaleInv[2, 2],
-            label="2",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_gyroScaleInv[:, 0, 1]) * init_gyroScaleInv[0, 1],
-            label="12",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_gyroScaleInv[:, 0, 2]) * init_gyroScaleInv[0, 2],
-            label="13",
-        )
-        plt.plot(
-            ts,
-            np.ones_like(vio_gyroScaleInv[:, 1, 2]) * init_gyroScaleInv[1, 2],
-            label="23",
-        )
-        plt.grid(True)
-        plt.legend(loc="upper center")
+    
+#    if not args.plot_sim:
+#        plt.figure("Calibration accelerometer vio vs init")
+#        plt.plot(ts, vio_accelScaleInv[:, 0, 0], label="1")
+#        plt.plot(ts, vio_accelScaleInv[:, 1, 1], label="2")
+#        plt.plot(ts, vio_accelScaleInv[:, 2, 2], label="3")
+#        plt.plot(ts, vio_accelScaleInv[:, 0, 1], label="12")
+#        plt.plot(ts, vio_accelScaleInv[:, 0, 2], label="13")
+#        plt.plot(ts, vio_accelScaleInv[:, 1, 2], label="23")
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_accelScaleInv[:, 0, 0]) * init_accelScaleInv[0, 0],
+#            label="1",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_accelScaleInv[:, 1, 1]) * init_accelScaleInv[1, 1],
+#            label="2",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_accelScaleInv[:, 2, 2]) * init_accelScaleInv[2, 2],
+#            label="2",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_accelScaleInv[:, 0, 1]) * init_accelScaleInv[0, 1],
+#            label="12",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_accelScaleInv[:, 0, 2]) * init_accelScaleInv[0, 2],
+#            label="13",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_accelScaleInv[:, 1, 2]) * init_accelScaleInv[1, 2],
+#            label="23",
+#        )
+#        plt.grid(True)
+#        plt.legend(loc="upper center")
+#        plt.figure()
+#        g = np.einsum("kip,p->ki", vio_accelScaleInv, [0, 9.81, 0])
+#        plt.plot(ts, g[:, 1])
+#        plt.figure("Calibration gyrometer vio vs init")
+#        plt.plot(ts, vio_gyroScaleInv[:, 0, 0], label="1")
+#        plt.plot(ts, vio_gyroScaleInv[:, 1, 1], label="2")
+#        plt.plot(ts, vio_gyroScaleInv[:, 2, 2], label="3")
+#        plt.plot(ts, vio_gyroScaleInv[:, 0, 1], label="12")
+#        plt.plot(ts, vio_gyroScaleInv[:, 0, 2], label="13")
+#        plt.plot(ts, vio_gyroScaleInv[:, 1, 2], label="23")
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_gyroScaleInv[:, 0, 0]) * init_gyroScaleInv[0, 0],
+#            label="1",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_gyroScaleInv[:, 1, 1]) * init_gyroScaleInv[1, 1],
+#            label="2",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_gyroScaleInv[:, 2, 2]) * init_gyroScaleInv[2, 2],
+#            label="2",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_gyroScaleInv[:, 0, 1]) * init_gyroScaleInv[0, 1],
+#            label="12",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_gyroScaleInv[:, 0, 2]) * init_gyroScaleInv[0, 2],
+#            label="13",
+#        )
+#        plt.plot(
+#            ts,
+#            np.ones_like(vio_gyroScaleInv[:, 1, 2]) * init_gyroScaleInv[1, 2],
+#            label="23",
+#        )
+#        plt.grid(True)
+#        plt.legend(loc="upper center")
 
     fig14 = plt.figure("position-2d")
     plt.plot(ps[idxs, 0], ps[idxs, 1], label="filter", color=color_filter)
@@ -832,7 +807,7 @@ def run(args, dataset):
         ref_type + "b",
         ["ba_x", "ba_y", "ba_z"],
         ts[idxs],
-        vio_ba_b[idxs, :],
+        ba_b[idxs, :],
         color=color_vio,
     )
     plot_state_euclidean(
@@ -848,7 +823,7 @@ def run(args, dataset):
         ref_type + "b",
         ["bg_x", "bg_y", "bg_z"],
         ts[idxs],
-        vio_bg_b[idxs, :],
+        bg_b[idxs, :],
         color=color_vio,
     )
     # plot RONIN
@@ -1177,7 +1152,6 @@ if __name__ == "__main__":
 
     # dataset
     parser.add_argument("--root_dir", type=str, default="../data")
-    parser.add_argument("--data_list", type=str, default="../data/filenames.txt")
     parser.add_argument("--dataset_number", type=int, default=None)
 
     # sim data
@@ -1211,6 +1185,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print(vars(args))
+
+    args.data_list = osp.join(args.root_dir, "test_list.txt")
 
     try:
         args.func(args)
