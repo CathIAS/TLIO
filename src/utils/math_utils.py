@@ -1,9 +1,25 @@
+# Copyright 2004-present Facebook. All Rights Reserved.
+
+import contextlib
 import warnings
 
 import numpy as np
-from numba import jit
 
 from .from_scipy import compute_q_from_matrix
+from .quiet_numba import jit
+
+
+def get_rotation_from_gravity(acc):
+    # take the first accel data to get gravity direction
+    ig_w = np.array([0, 0, 1.0]).reshape((3, 1))
+    return rot_2vec(acc, ig_w)
+
+
+def inv_SE3(T):
+    Tinv = np.eye(4)
+    Tinv[:3,:3] = T[:3,:3].T
+    Tinv[:3,3:4] = - T[:3,:3].T @ T[:3,3:4]
+    return Tinv
 
 
 def hat(v):
@@ -11,6 +27,8 @@ def hat(v):
     R = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     return R
 
+def vee(w_x):
+    return np.array([w_x[2,1], w_x[0,2], w_x[1,0]])
 
 @jit(nopython=True, parallel=False, cache=True)
 def rot_2vec(a, b):
@@ -76,7 +94,8 @@ def mat_log(R):
             else:
                 atn = -np.pi / n
         else:
-            atn = 2.0 * np.arctan(n / w) / n
+            #atn = 2.0 * np.arctan(n / w) / n
+            atn = 2.0 * np.arctan2(n, w) / n
     tangent = atn * vec
     return tangent
 
@@ -98,13 +117,47 @@ def mat_log_vec(R):
 
     mask2 = np.absolute(w) < epsilon
     atn_normal_small = np.sign(w) * np.pi / n
-    atn_normal_normal = 2.0 * np.arctan(n / w) / n
+    #atn_normal_normal = 2.0 * np.arctan(n / w) / n
+    atn_normal_normal = 2.0 * np.arctan2(n, w) / n
 
     atn = mask2 * atn_normal_small + (1 - mask2) * atn_normal_normal
     atn = mask * atn_small + (1 - mask2) * atn
 
     tangent = atn[0, np.newaxis] * vec
     return tangent
+
+
+def hat_SE3(v):
+    """
+    Aligns with the Sophus convention of the 6x1 v being
+    in the block order: [log(translation) log(rotation)]
+    """
+    Ohat = np.zeros((4,4))
+    Ohat[:3,:3] = hat(v[3:])
+    Ohat[:3,3] = v[:3]
+    return Ohat
+
+
+def exp_SE3(v):
+    """
+    Aligns with the Sophus convention of the 6x1 v being
+    in the block order: [log(translation) log(rotation)]
+    """
+    Exp = np.eye(4)
+    Exp[:3,:3] = mat_exp(v[3:])
+    Exp[:3,3:4] = Jl_SO3(v[3:]) @ v[:3,None]
+    return Exp
+
+
+def log_SE3(T):
+    """
+    Aligns with the Sophus convention of the returned 6x1 v being
+    in the block order: [log(translation) log(rotation)]
+    """
+    w = mat_log(T[:3,:3])
+    V_inv = Jl_SO3_inv(w)
+    v = V_inv @ T[:3,3:4]
+    return np.concatenate([v[:,0], w], 0)
 
 
 """ right jacobian for exp operation on SO(3) """
@@ -148,6 +201,41 @@ def Jr_log(phi):
     return J
 
 
+def Jr_SO3(phi):
+    """ right Jacobian of SO(3) (Eq. 7.77a in Barfoot's "State Estimation in Robotics" book) """
+    phi_norm = np.linalg.norm(phi)
+    if phi_norm < 1e-5:
+        return np.eye(3)
+    else:
+        a = phi / phi_norm
+        a = a.reshape(3,1)
+        sin_phi_div_phi = np.sin(phi_norm) / phi_norm
+        return sin_phi_div_phi * np.eye(3) + (1-sin_phi_div_phi) * a @ a.T + (1-np.cos(phi_norm))/phi_norm * hat(a)
+
+
+def Jl_SO3(phi):
+    """ Left Jacobian of SO(3) """
+    theta = np.linalg.norm(phi)
+    Om = hat(phi)
+    if theta < 1e-5:
+        return np.eye(3) + 0.5 * Om
+    else:
+        theta2 = theta ** 2
+        return np.eye(3) + (1-np.cos(theta))/theta2 * Om + (theta-np.sin(theta))/(theta2*theta) * Om @ Om
+
+
+def Jl_SO3_inv(phi):
+    """ Inverse of left Jacobian of SO(3) """
+
+    theta = np.linalg.norm(phi)
+    Om = hat(phi)
+    if theta < 1e-5:
+        return np.eye(3) - 0.5 * Om + 1.0/12 * Om @ Om
+    else:
+        theta2 = theta ** 2
+        return np.eye(3) - 0.5 * Om + (1 - 0.5 * theta * np.cos(theta/2) / np.sin(theta/2)) / theta**2 * Om @ Om
+
+
 def unwrap_rpy(rpys):
     diff = rpys[1:, :] - rpys[0:-1, :]
     uw_rpys = np.zeros(rpys.shape)
@@ -158,10 +246,11 @@ def unwrap_rpy(rpys):
     return uw_rpys
 
 
-def wrap_rpy(uw_rpys):
+def wrap_rpy(uw_rpys, radians=False):
+    bound = np.pi if radians else 180
     rpys = uw_rpys
-    while rpys.min() < -180:
-        rpys[rpys < -180] = rpys[rpys < -180] + 360
-    while rpys.max() >= 180:
-        rpys[rpys >= 180] = rpys[rpys >= 180] - 360
+    while rpys.min() < -bound:
+        rpys[rpys < -bound] = rpys[rpys < -bound] + 2*bound
+    while rpys.max() >= bound:
+        rpys[rpys >= bound] = rpys[rpys >= bound] - 2*bound
     return rpys

@@ -2,146 +2,117 @@ _This code is a supplementary material to the paper "TLIO: Tight Learned Inertia
 
 
 # Installation
-Dependencies tree can be retrieved from `pyproject.toml`.
-It is written for the poetry tool. 
-All dependencies can thus be installed at once in a new virtual environment with:
+All dependencies can be installed using conda via
 ```shell script
-cd src
-poetry install
+conda env create -f environment.yaml
 ```
 Then the virtual environment is accessible with:
 ```shell script
-poetry shell
-```
-
-Alternatively, the dependencies are also specified and can be installed through `requirements.txt`. First create a virtual environment with python3 interpreter, then run
-``` 
-pip install -r requirements.txt
+conda activate tlio
 ```
 
 Next commands should be run from this environment.
 
 # Dataset
-A dataset is needed in the format of hdf5 to run with this code. The dataset tree structure looks like this under root directory `Dataset`:
+A dataset is needed in numpy format to run with this code. 
+We have released the dataset used in the paper.
+The data can be downloaded [here](https://drive.google.com/file/d/10Bc6R-s0ZLy9OEK_1mfpmtDg3jIu8X6g/view?usp=share_link) or with the following command (with the conda env activated) at the root of the repo:
+```shell script
+gdown 14YKW7PsozjHo_EdxivKvumsQB7JMw1eg
+mkdir -p local_data/ # or ln -s /path/to/data_drive/ local_data/
+unzip golden-new-format-cc-by-nc-with-imus-v1.5.zip -d local_data/
+rm golden-new-format-cc-by-nc-with-imus-v1.5.zip
 ```
-Dataset
-├── test.txt
-├── train.txt
-├── val.txt
-├── seq1
-│   ├── atttitude.txt
-│   ├── calib_state.txt
-│   ├── evolving_state.txt
-│   └── data.hdf5
-├── seq22
-│   ├── atttitude.txt
-│   ├── calib_state.txt
-│   ├── evolving_state.txt
-│   └── data.hdf5
+https://drive.google.com/file/d/14YKW7PsozjHo_EdxivKvumsQB7JMw1eg/view?usp=share_link
+The dataset tree structure looks like this.
+Assume for the examples we have extracted the data under root directory `local_data/tlio_golden`:
+```
+local_data/tlio_golden
+├── 1008221029329889
+│   ├── calibration.json
+│   ├── imu0_resampled_description.json
+│   ├── imu0_resampled.npy
+│   └── imu_samples_0.csv
+├── 1014753008676428
+│   ├── calibration.json
+│   ├── imu0_resampled_description.json
+│   ├── imu0_resampled.npy
+│   └── imu_samples_0.csv
 ...
+├── test_list.txt
+├── train_list.txt
+└── val_list.txt
 ```
 
-`data.hdf5` contains raw and calibrated IMU data and processed ground truth data. It is used for both the network and the filter. `calib_state.txt` contains calibration states from VIO and is used for filter initialization. `atttitude.txt` and `evolving_state.txt` are the outputs from AHRS attitude filter and VIO pose estimates. These are not used by the filter, but loaded for comparison / debug purposes.
-
-The generation of `data.hdf5` is specified in `gen_fb_data.py`, which requires interpolated stamped IMU measurement files and time-aligned VIO states files. The user can generate his/her own dataset with a different procedure to obtain the same fields to be used for network training and filter inputs.
-
-## File formats
-
-### Dataset lists
-
-`test.txt`, `train.txt` and `val.txt` are list files specifying the split with one sequence name per row in the testing, training and validation datasets respectively. The name should be the same of the sequence directory for example `seq1` and `seq22` as above.
-
-
-### Used to generate `data.hdf5`
-Timestamps (t) are in microseconds (us). Each row corresponds to data in a single timestamp. All data is delimited by commas.
-
-- `my_timestamps_p.txt` VIO timestamps.
-  - [t]
-  - Note: single column, skipped first 20 frames
-- `imu_measurements.txt` raw and calibrated IMU data
-  - [t, acc_raw (3), acc_cal (3), gyr_raw (3), gyr_cal (3), has_vio] 
- - Note: calibration through VIO calibration states. The data has been interpolated evenly between images around 1000Hz. Every timestamp in my_timestamps_p.txt will have a corresponding timestamp in this file (has_vio==1). 
-- `evolving_state.txt` ground truth (VIO) states at IMU rate.
-  - [t, q_wxyz (4), p (3), v (3)]
-  - Note: VIO state estimates with IMU integration. Timestamps are from raw IMU measurements.
-- `calib_state.txt` VIO calibration states at image rate (used in `data_io.py`)
-  - [t, acc_scale_inv (9), gyr_scale_inv (9), gyro_g_sense (9), b_acc (3), b_gyr (3)]
-  - Note: Changing calibration states from VIO.
-- `atttitude.txt` AHRS attitude from IMU
-  - [t, qw, qx, qy, qz]
+`imu0_resampled.npy` contains calibrated IMU data and processed VIO ground truth data.
+`imu0_resampled_description.json` describes what the different columns in the data are.
+The test sequences contain `imu_samples_0.csv` which is the raw IMU data for running the filter. 
+`calibration.json` contains the offline calibration. 
+Attitude filter data is not included with the release.
 
 # Network training and evaluation
 
 ## For training or evaluation of one model
 
-There are three different modes for the network part.`--mode` parameter defines the behaviour of `main_net.py`. Select between `train`, `test` and `eval`. \
+There are three different modes for the network part.`--mode` parameter defines the behaviour of `main_net.py`. Select between `train`, `test` \
 `train`: training a network model with training and validation dataset. \
 `test`: running an existing network model on testing dataset to obtain concatenated trajectories and metrics. \
-`eval`: running an exising network model and save all statistics of data samples for network performance evaluation.
 
 ### 1. Training:
 
 **Parameters:** 
 
 `--root_dir`: dataset root directory. Each subfolder of root directory is a dataset. \
-`--train_list`: directory of the txt file with a list of training datasets. It should contain name of subfolder in root. \
-`--val_list`: directory of the txt file with a list of validation datasets.  \It should contain name of subfolder in root.\
 `--out_dir`: training output directory, where `checkpoints` and `logs` folders will be created to store trained models and tensorboard logs respectively. A `parameters.json` file will also be saved.
 
 **Example:** 
 ```shell script
 python3 src/main_net.py \
 --mode train \
---root_dir data/Dataset \
---train_list data/Dataset/train.txt \
---val_list data/Dataset/val.txt \
---out_dir train_outputs
+--root_dir local_data/tlio_golden \
+--out_dir models/resnet \
+--epochs 100
+```
+
+**Note:** We offer multiple types of dataloaders to help speed up training.
+The `--dataset_style` arg can be `ram`, `mmap`, or `iter`. 
+`ram` stores all the sequences in RAM, `mmap` uses memmapping to only keep part of the 
+sequences in RAM at once, and `iter` is an iterable-style dataloader for larger datasets,
+which sacrifices true randomness. 
+The default is `mmap`, which offers the best tradeoff, and typically works for 
+the dataset provided.
+However, we found that on server-style machines, the memmapping can cause RAM to fill up
+for some reason (it seems to work best on personal desktops).
+If the training is getting killed by your OS or taking up too much RAM,
+you may try setting `--workers` to 1, `--dataset_style` to `ram`, and/or `--no-persistent_workers`.
+
+```shell script
+tensorboard --logdir models/resnet/logs/
 ```
 
 ### 2. Testing:
 
 **Parameters:** 
 
-`--test_list`: path of the txt file with a list of testing datasets. \
 `--model_path`: path of the trained model to test with. \
 `--out_dir`: testing output directory, where a folder for each dataset tested will be created containing estimated trajectory as `trajectory.txt` and plots if specified. `metrics.json` contains the statistics for each dataset. 
 
 **Example:**
-```
+```shell script
 python3 src/main_net.py \
 --mode test \
---root_dir data/Dataset \
---test_list data/Dataset/test.txt \
+--root_dir local_data/tlio_golden \
 --model_path models/resnet/checkpoint_*.pt \
 --out_dir test_outputs
 ```
 
-### 3. Evaluation:
 
-**Parameters:** 
+**Warning:** network testing use the ground truth orientations for displacement integration. 
+Please do not consider them as benchmarks, they are more like a debugging tool.
 
-`--out_dir`: evaluation pickle file output directory. \
-`--sample_freq`: the frequency of network input data sample tested in Hz. \
-`--out_name`: (optional) output pickle file name.
-
-**Example:**
-```shell script
-python3 src/main_net.py \
---mode eval \
---root_dir data/Dataset \
---test_list data/Dataset/test.txt \
---model_path models/resnet/checkpoint_*.pt \
---out_dir eval_outputs \
---sample_freq 5 \
---out_name resnet.pkl
-```
-Please refer to `main_net.py` for a full list of parameters.
-
-## For batch evaluation on multiple models
+## For batch testing on multiple models
 
 Batch scripts are under src/batch_analysis module. Execute batch scripts from the src folder.
-
-### Testing:
 
 Batch testing tests a list of datasets using multiple models and for each model save the trajectories, plots and metrics into a separate model folder. Output tree structure looks like this:
 ```
@@ -165,89 +136,50 @@ Create an output directory and go to the src folder
 mkdir batch_test_outputs
 cd src
 ```
-Run batch tests. `--model_globbing` is the globbing pattern to find all models to test.
+Run batch tests. `--model_globbing` is the globbing pattern to find all models to test. Here we only have one.
 ```shell script
 python -m batch_runner.net_test_batch \
---root_dir ../data/Dataset \
---data_list ../data/Dataset/test.txt \
---model_globbing "../models/*/checkpoint_*.pt" \
+--root_dir ../local_data/tlio_golden \
+--model_globbing "../models/*/checkpoint_best.pt" \
 --out_dir ../batch_test_outputs \
+--save_plot
 ```
-To save plots as well, change parameter `save_plot` to True in `main_net.py`.
+If you saved plot, you can visualize there:
 
-### Evaluation:
-
-Batch evaluation runs the eval mode for multiple models, with various perturbation settings. Different perturbations result in a separate pickle file under each model folder. Output tree structure:
-```
-net_eval_outputs
-├── model1
-│   ├── d-bias-0.0-0.025-grav-0.0.pkl
-│   ├── d-bias-0.0-0.05-grav-0.0.pkl
-│   ├── d-bias-0.0-0.075-grav-0.0.pkl
-│   ├── d-bias-0.0-0.0-grav-0.0.pkl
-│   ├── d-bias-0.0-0.0-grav-10.0.pkl
-│   ├── d-bias-0.0-0.0-grav-2.0.pkl
-│   ├── d-bias-0.0-0.0-grav-4.0.pkl
-│   ├── d-bias-0.0-0.0-grav-6.0.pkl
-│   ├── d-bias-0.0-0.0-grav-8.0.pkl
-│   ├── d-bias-0.0-0.1-grav-0.0.pkl
-│   ├── d-bias-0.1-0.0-grav-0.0.pkl
-│   ├── d-bias-0.2-0.0-grav-0.0.pkl
-│   ├── d-bias-0.3-0.0-grav-0.0.pkl
-│   ├── d-bias-0.4-0.0-grav-0.0.pkl
-│   └── d-bias-0.5-0.0-grav-0.0.pkl
-├── model2
-│   ├── d-bias-0.0-0.025-grav-0.0.pkl
-│   ├── d-bias-0.0-0.05-grav-0.0.pkl
-...
-```
-
-In the current script, the following perturbation values are used: \
-Accelerometer bias perturbation range: [0, 0.1, 0.2, 0.3, 0.4, 0.5] (m/s^2) \
-Gyroscope bias perturbation range: [0, 0.025, 0.05, 0.075, 0.1] (rad/s) \
-Gravity direction perturbation range: [0, 0, 2, 4, 6, 8, 10] (degrees) \
-These can be changed in the script `batch_runner/net_eval_batch.py`, and for each perturbation range a pkl file will be saved with the range in the filename.
-
-Create an output directory and go to the src folder
 ```shell script
-mkdir batch_eval_outputs
-cd src
+feh ../	batch_test_outputs/models-resnet/*/view.png # example using the `feh` image visualizer, use your favorite one
 ```
-Run batch evaluation
-```shell script
-python -m batch_runner.net_eval_batch \
---root_dir ../data/Dataset \
---data_list ../data/Dataset/test.txt \
---model_globbing "../models/*/checkpoint_*.pt" \
---out_dir ../net_eval_outputs \
---sample_freq 5.0
-```
+
 
 ## Running analysis and generating plots
 
-After running testing and evaluation in batches, the statistics are saved in either `metrics.json` or the generated pickle files. To visualize the results and compare between models, we provide scripts that display the results in an interactive shell through iPython. The scripts are under `src/analysis` module.
+After running testing and evaluation in batches, the statistics are saved in either `metrics.json`. To visualize the results and compare between models, we provide scripts that display the results in an interactive shell through iPython. The scripts are under `src/analysis` module.
 
 To visualize network testing results from `metrics.json` including trajectory metrics and testing losses, go to `src` folder and run
 ```shell script
 python -m analysis.display_json \
---glob_dataset "../batch_test_output/*/"
+--glob_dataset "../batch_test_outputs/*/"
 ```
 This will leave you in an interactive shell with a preloaded panda DataFrame `d`. You can use it to visualize all metrics with the following helper function:
 ```shell script
 plot_all_stats_net(d)
 ```
 
-To visualize evaluation results from pickle files, run
-```shell script
-python -m analysis.display_pickle \
---glob_pickle "../batch_eval_outputs/*/*.pkl"
-```
-This gives access to all the sample data 3D displacement gt and errors, sigmas, mse and likelihood losses, 2D norm and angle gt and errors, and mahalanobis distance based on the regressed covariance. To plot sigmas vs. errors for example, run
-```shell script
-plot_sigmas(d)
-```
-
 # Running EKF with network displacement estimates
+
+## Converting model to torchscript
+The EKF expects the model to be in torchscript format.
+
+**Example:**
+From the repo root:
+```shell script
+python3 src/convert_model_to_torchscript.py \
+--model_path models/resnet/checkpoint_best.pt \
+--model_param_path models/resnet/parameters.json \
+--out_dir models/resnet/
+```
+which will create `models/resnet/model_torchscript.pt`.
+
 
 ## Running EKF with one network model
  
@@ -260,19 +192,21 @@ Use `src/main_filter.py` for running the filter and parsing parameters. The prog
 `--out_dir`: filter output directory. This will include a `parameters.json` file with filter parameters, and a folder for each dataset containing the logged states, default to `not_vio_state.txt`. \
 `--erase_old_log`: overwrite old log files. If set to `--no-erase_old_log`, the program would skip running on the datasets if the output file already exists in the output directory. \
 `--save_as_npy`: convert the output txt file to npy file and append file extension (e.g. `not_vio_state.txt.npy`) to save space. \
-`--initialize_with_offline_calib`: initialize with offline calibration of the IMU. If set to `--no-initialize_with_offline_calib` the initial IMU biases will be initialized to 0.
+`--initialize_with_offline_calib`: initialize with offline calibration of the IMU. If set to `--no-initialize_with_offline_calib` the initial IMU biases will be initialized to 0. \
+`--visualize`: if set, open up an Open3D window to visualize the filter running. This is of course optional.
 
 **Example:**
 ```shell script
 python3 src/main_filter.py \
---root_dir data/Dataset \
---data_list data/Dataset/test.txt \
---model_path models/resnet/checkpoint_75.pt \
+--root_dir local_data/tlio_golden \
+--model_path models/resnet/model_torchscript.pt \
 --model_param_path models/resnet/parameters.json \
 --out_dir filter_outputs \
 --erase_old_log \
 --save_as_npy \
---initialize_with_offline_calib
+--initialize_with_offline_calib \
+--dataset_number 22 \
+--visualize
 ```
 Please refer to `main_filter.py` for a full list of parameters.
 
@@ -282,10 +216,10 @@ Batch script `batch_runner/filter_batch` provides functionality to run the main 
 
 **Example:**
 ```shell script
-python -m batch_runner.run_batch \
---root_dir ../data/Dataset \
---data_list ../data/Dataset/test.txt \
---model_globbing "../models/*/checkpoint_*.pt" \
+cd src
+python -m batch_runner.filter_batch \
+--root_dir ../local_data/tlio_golden \
+--model_globbing "../models/*/model_torchscript.pt" \
 --out_dir ../batch_filter_outputs
 ```
 
@@ -301,11 +235,10 @@ To generate plots of the states of the filter and to generate `metrics.json` fil
 **Example:**
 ```shell script
 python -m batch_runner.plot_batch \
---root_dir ../data/Dataset \
---data_list ../data/Dataset/test.txt \
+--root_dir ../local_data/tlio_golden \
 --runname_globbing "*" \
---filter_dir ../batch_filter_outputs \
---ronin_dir ../batch_test_outputs \
+--filter_dir ../batch_filter_outputs_uf20 \
+--ronin_dir ../batch_test_outputs
 ```
 
 Up to now a `metrics.json` file will be added to each model folder, and the tree structure would look like this:
@@ -327,8 +260,16 @@ batch_filter_outputs
 ...
 ```
 
+Visualize the plot from the filter and ronin:
+```shell script
+feh ../batch_filter_outputs_uf20/models-resnet/*/position-2d.png # example using the `feh` image visualizer, use your favorite one
+```
+
 To generate plots from the metrics:
 ```shell script
 python -m analysis.display_json \
---glob_dataset "../batch_filter_outputs/*/"
+--glob_dataset "../batch_filter_outputs_uf20/*/"
+
+# then run in the interactive session
+# plot_sysperf_cdf(d)
 ```

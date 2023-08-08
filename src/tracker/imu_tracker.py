@@ -8,7 +8,6 @@ from numba import jit
 from scipy.interpolate import interp1d
 from tracker.imu_buffer import ImuBuffer
 from tracker.imu_calib import ImuCalib
-from tracker.meas_source_network import MeasSourceNetwork
 from tracker.meas_source_torchscript import MeasSourceTorchScript
 from tracker.scekf import ImuMSCKF
 from utils.dotdict import dotdict
@@ -29,7 +28,7 @@ class ImuTracker:
         model_path,
         model_param_path,
         update_freq,
-        filter_tuning,
+        filter_tuning_cfg,
         imu_calib: Optional[ImuCalib] = None,
         force_cpu=False,
     ):
@@ -112,14 +111,12 @@ class ImuTracker:
 
         # IMU initial calibration
         self.icalib = imu_calib
+        self.filter_tuning_cfg = filter_tuning_cfg # Config
         # MSCKF
-        self.filter = ImuMSCKF(filter_tuning)
+        self.filter = ImuMSCKF(filter_tuning_cfg)
 
         net_config = {"in_dim": (self.past_data_size + self.disp_window_size) // 32 + 1}
-        self.meas_source = MeasSourceNetwork(
-            model_path, config_from_network["arch"], net_config, force_cpu
-        )
-        # self.meas_source = MeasSourceTorchScript(model_path, force_cpu)
+        self.meas_source = MeasSourceTorchScript(model_path, force_cpu)
 
         self.imu_buffer = ImuBuffer()
 
@@ -129,7 +126,13 @@ class ImuTracker:
         self.debug_callback_get_meas = None
 
         # keep track of past timestamp and measurement
-        self.last_t_us, self.last_acc, self.last_gyr = -1, None, None
+        self.last_t_us = -1
+
+        # keep track of the last measurement received before next interpolation time
+        self.t_us_before_next_interpolation = -1
+        self.last_acc_before_next_interp_time = None
+        self.last_gyr_before_next_interp_time = None
+
         self.next_interp_t_us = None
         self.next_aug_t_us = None
         self.has_done_first_update = False
@@ -185,36 +188,71 @@ class ImuTracker:
 
         return net_gyr_w, net_acc_w
 
+    def _compensate_measurement_with_initial_calibration(self, gyr_raw, acc_raw):
+        if self.icalib:
+            #logging.info("Using bias from initial calibration")
+            init_ba = self.icalib.accelBias
+            init_bg = self.icalib.gyroBias
+            # calibrate raw imu data
+            acc_biascpst, gyr_biascpst = self.icalib.calibrate_raw(
+                acc_raw, gyr_raw
+            )  # removed offline bias and scaled
+        else:
+            #logging.info("Using zero bias")
+            init_ba = np.zeros((3, 1))
+            init_bg = np.zeros((3, 1))
+            acc_biascpst, gyr_biascpst = acc_raw, gyr_raw
+        return gyr_biascpst, acc_biascpst, init_bg, init_ba
+
+    def _after_filter_init_member_setup(self, t_us, gyr_biascpst, acc_biascpst):
+        self.next_interp_t_us = t_us
+        self.next_aug_t_us = t_us
+        self._add_interpolated_imu_to_buffer(acc_biascpst, gyr_biascpst, t_us)
+        self.next_aug_t_us = t_us + self.dt_update_us
+
+        self.last_t_us = t_us
+
+        self.t_us_before_next_interpolation = t_us
+        self.last_acc_before_next_interp_time = acc_biascpst
+        self.last_gyr_before_next_interp_time = gyr_biascpst
+
+    def init_with_state_at_time(self, t_us, R, v, p, gyr_raw, acc_raw):
+        assert R.shape == (3, 3)
+        assert v.shape == (3, 1)
+        assert p.shape == (3, 1)
+
+        logging.info(f"Initializing filter at time {t_us*1e-6}")
+        (
+            gyr_biascpst,
+            acc_biascpst,
+            init_bg,
+            init_ba,
+        ) = self._compensate_measurement_with_initial_calibration(gyr_raw, acc_raw)
+        self.filter.initialize_with_state(t_us, R, v, p, init_ba, init_bg)
+        self._after_filter_init_member_setup(t_us, gyr_biascpst, acc_biascpst)
+        return False
+
+    def _init_without_state_at_time(self, t_us, gyr_raw, acc_raw):
+        assert isinstance(t_us, int)
+        logging.info(f"Initializing filter at time {t_us*1e-6}")
+        (
+            gyr_biascpst,
+            acc_biascpst,
+            init_bg,
+            init_ba,
+        ) = self._compensate_measurement_with_initial_calibration(gyr_raw, acc_raw)
+        self.filter.initialize(t_us, acc_biascpst, init_ba, init_bg)
+        self._after_filter_init_member_setup(t_us, gyr_biascpst, acc_biascpst)
+
     def on_imu_measurement(self, t_us, gyr_raw, acc_raw):
         assert isinstance(t_us, int)
+        if t_us - self.last_t_us > 3e3:
+            logging.warning(f"Big IMU gap : {t_us - self.last_t_us}us")
+
         if self.filter.initialized:
             return self._on_imu_measurement_after_init(t_us, gyr_raw, acc_raw)
         else:
-            logging.info(f"Initializing filter at time {t_us*1e-6}")
-            if self.icalib:
-                logging.info(f"Using bias from initial calibration")
-                init_ba = self.icalib.accelBias
-                init_bg = self.icalib.gyroBias
-                # calibrate raw imu data
-                acc_biascpst, gyr_biascpst = self.icalib.calibrate_raw(
-                    acc_raw, gyr_raw
-                )  # removed offline bias and scaled
-            else:
-                logging.info(f"Using zero bias")
-                init_ba = np.zeros((3, 1))
-                init_bg = np.zeros((3, 1))
-                acc_biascpst, gyr_biascpst = acc_raw, gyr_raw
-
-            self.filter.initialize(acc_biascpst, t_us, init_ba, init_bg)
-            self.next_interp_t_us = t_us
-            self.next_aug_t_us = t_us
-            self._add_interpolated_imu_to_buffer(acc_biascpst, gyr_biascpst, t_us)
-            self.next_aug_t_us = t_us + self.dt_update_us
-            self.last_t_us, self.last_acc, self.last_gyr = (
-                t_us,
-                acc_biascpst,
-                gyr_biascpst,
-            )
+            self._init_without_state_at_time(t_us, gyr_raw, acc_raw)
             return False
 
     def _on_imu_measurement_after_init(self, t_us, gyr_raw, acc_raw):
@@ -272,7 +310,12 @@ class ImuTracker:
             self.next_aug_t_us += self.dt_update_us
 
         # set last value memory to the current one
-        self.last_t_us, self.last_acc, self.last_gyr = t_us, acc_biascpst, gyr_biascpst
+        self.last_t_us = t_us
+
+        if t_us < self.t_us_before_next_interpolation:
+            self.t_us_before_next_interpolation = t_us
+            self.last_acc_before_next_interp_time = acc_biascpst
+            self.last_gyr_before_next_interp_time = gyr_biascpst
 
         return did_update
 
@@ -315,11 +358,11 @@ class ImuTracker:
 
     def _add_interpolated_imu_to_buffer(self, acc_biascpst, gyr_biascpst, t_us):
         self.imu_buffer.add_data_interpolated(
-            self.last_t_us,
+            self.t_us_before_next_interpolation,
             t_us,
-            self.last_gyr,
+            self.last_gyr_before_next_interp_time,
             gyr_biascpst,
-            self.last_acc,
+            self.last_acc_before_next_interp_time,
             acc_biascpst,
             self.next_interp_t_us,
         )

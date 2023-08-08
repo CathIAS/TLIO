@@ -1,7 +1,10 @@
+# Copyright 2004-present Facebook. All Rights Reserved.
+
 import warnings
 
 import numpy as np
-from numba import jit
+
+from .quiet_numba import jit
 
 
 """

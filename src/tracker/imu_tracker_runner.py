@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 from scipy.spatial.transform import Rotation
 from tracker.imu_calib import ImuCalib
 from tracker.imu_tracker import ImuTracker
+from utils.o3d_visualizer import O3dVisualizer
 from utils.dotdict import dotdict
 from utils.logging import logging
 
@@ -23,6 +24,12 @@ class ImuTrackerRunner:
         self.input = DataIO()
         self.input.load_all(dataset, args)
         self.input.load_vio(dataset, args)
+        self.visualizer = None
+        if args.visualize:
+            vio_ghost = np.concatenate([
+                self.input.vio_ts_us[:,None], self.input.vio_rq, self.input.vio_p
+            ], axis=1)
+            self.visualizer = O3dVisualizer(vio_ghost)
 
         # log file initialization
         outdir = os.path.join(args.out_dir, dataset)
@@ -42,7 +49,7 @@ class ImuTrackerRunner:
         self.f_debug = open(os.path.join(outdir, "debug.txt"), "w")
         logging.info(f"writing to {outfile}")
 
-        imu_calib = ImuCalib.from_attitude_file(dataset, args)
+        imu_calib = ImuCalib.from_offline_calib(dataset, args)
 
         filter_tuning = dotdict(
             {
@@ -74,8 +81,9 @@ class ImuTrackerRunner:
             model_path=args.model_path,
             model_param_path=args.model_param_path,
             update_freq=args.update_freq,
-            filter_tuning=filter_tuning,
+            filter_tuning_cfg=filter_tuning,
             imu_calib=imu_calib,
+            #force_cpu=True,
         )
 
         # output
@@ -178,10 +186,19 @@ class ImuTrackerRunner:
                 did_update = self.tracker.on_imu_measurement(t_us, gyr_raw, acc_raw)
                 self.add_data_to_be_logged(
                     ts,
-                    self.tracker.last_acc,
-                    self.tracker.last_gyr,
+                    self.tracker.last_acc_before_next_interp_time,  # beware when imu drops, it might not be what you want here
+                    self.tracker.last_gyr_before_next_interp_time,  # beware when imu drops, it might not be what you want here
                     with_update=did_update,
                 )
+                if i % 100 == 0 and self.visualizer is not None:
+                    T_World_Imu = np.eye(4)
+                    T_World_Imu[:3,:3] = self.tracker.filter.state.s_R
+                    T_World_Imu[:3,3:4] = self.tracker.filter.state.s_p
+                    self.visualizer.update(
+                        t_us, 
+                        {"tlio": T_World_Imu},    
+                        {"tlio": [T_World_Imu[:3,3]]},    
+                    )
             else:
                 # initialize to gt state R,v,p and offline calib
                 if not args.initialize_with_vio:
@@ -193,6 +210,9 @@ class ImuTrackerRunner:
                     else:
                         init_ba = np.zeros((3, 1))
                         init_bg = np.zeros((3, 1))
+
+                    if ts < self.input.vio_ts[0]:
+                        continue
                     vio_p = interp1d(self.input.vio_ts, self.input.vio_p, axis=0)(ts)
                     vio_v = interp1d(self.input.vio_ts, self.input.vio_v, axis=0)(ts)
                     vio_eul = interp1d(self.input.vio_ts, self.input.vio_eul, axis=0)(
@@ -201,7 +221,7 @@ class ImuTrackerRunner:
                     vio_R = Rotation.from_euler(
                         "xyz", vio_eul, degrees=True
                     ).as_matrix()
-                    self.tracker.filter.initialize_with_state(
+                    self.tracker.init_with_state_at_time(
                         t_us,
                         vio_R,
                         np.atleast_2d(vio_v).T,
@@ -209,8 +229,6 @@ class ImuTrackerRunner:
                         init_ba,
                         init_bg,
                     )
-                    self.tracker.next_aug_t_us = int(ts * 1e6)
-                    self.tracker.next_interp_t_us = int(ts * 1e6)
 
         self.f_state.close()
         self.f_debug.close()
@@ -257,7 +275,7 @@ class ImuTrackerRunner:
         """ Reset filter states p and v with zeros """
         state = self.tracker.filter.state
         ps = []
-        for i in state.si_timestamps:
+        for i in state.si_timestamps_us:
             ps.append(np.zeros((3, 1)))
         p = np.zeros((3, 1))
         v = np.zeros((3, 1))

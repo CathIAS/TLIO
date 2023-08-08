@@ -19,11 +19,6 @@ if __name__ == "__main__":
         help="Path to dataset directory",
     )
     io_groups.add_argument(
-        "--data_list",
-        type=str,
-        default=f"{homedir}/vo_output/split/golden/golden_test.txt",
-    )
-    io_groups.add_argument(
         "--model_globbing",
         type=str,
         default="../models/200hz/1s-1s*/checkpoint_*.pt",
@@ -43,7 +38,7 @@ if __name__ == "__main__":
     logging.info(f"Found {len(all_models)} models")
     logging.info(f"Found {all_models}")
 
-    update_frequency_list = [20, 10, 4, 2]
+    update_frequency_list = [20]
     for update_frequency in update_frequency_list:
         try:
             os.mkdir(f"./{args.out_dir}_uf{update_frequency}")
@@ -63,8 +58,6 @@ if __name__ == "__main__":
             command = [
                 "python3",
                 "main_filter.py",
-                "--data_list",
-                f"{args.data_list}",
                 "--root_dir",
                 f"{args.root_dir}",
                 "--model_path",

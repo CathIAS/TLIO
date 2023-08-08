@@ -1,0 +1,14 @@
+name: tlio
+channels:
+  - pytorch
+  - pytorch3d
+  - defaults
+  - conda-forge
+dependencies:
+  - cudatoolkit=11.3 # Leave official torch distro here so it knows the cuda vers
+  - python=3.9.7
+  - pytorch=1.11.0
+  - pytorch3d
+  - pip
+  - pip:
+    - -r requirements.txt

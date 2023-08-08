@@ -8,12 +8,16 @@ from os import path as osp
 
 import matplotlib.pyplot as plt
 import torch
-from dataloader.dataset_fb import FbSequenceDataset
+#from dataloader.dataset_fb import FbSequenceDataset
+from dataloader.tlio_data import TlioData
+from dataloader.memmapped_sequences_dataset import MemMappedSequencesDataset
 from network.losses import get_loss
 from network.model_factory import get_model
 from scipy.interpolate import interp1d
 from scipy.spatial.transform import Rotation
 from torch.utils.data import DataLoader
+from utils.dotdict import dotdict
+from utils.utils import to_device
 from utils.logging import logging
 from utils.math_utils import *
 
@@ -61,31 +65,36 @@ def pose_integrate(args, dataset, preds):
     dp_t = args.window_time
     pred_vels = preds / dp_t
 
-    ind = np.array([i[1] for i in dataset.index_map], dtype=np.int)
-    delta_int = int(
-        args.window_time * args.imu_freq / 2.0
-    )  # velocity as the middle of the segment
+    #ind = np.array([i[1] for i in dataset.index_map], dtype=np.int)
+    #delta_int = int(
+    #    args.window_time * args.imu_freq / 2.0
+    #)  # velocity as the middle of the segment
     if not (args.window_time * args.imu_freq / 2.0).is_integer():
         logging.info("Trajectory integration point is not centered.")
-    ind_intg = ind + delta_int  # the indices of doing integral
+    #ind_intg = ind + delta_int  # the indices of doing integral
 
-    ts = dataset.ts[0]
-    dts = np.mean(ts[ind_intg[1:]] - ts[ind_intg[:-1]])
-    pos_intg = np.zeros([pred_vels.shape[0] + 1, args.output_dim])
-    pos_intg[0] = dataset.gt_pos[0][ind_intg[0], :]
-    pos_intg[1:] = np.cumsum(pred_vels[:, :] * dts, axis=0) + pos_intg[0]
-    ts_intg = np.append(ts[ind_intg], ts[ind_intg[-1]] + dts)
+    ts = dataset.get_ts_last_imu_us() * 1e-6
+    r_gt, pos_gt = dataset.get_gt_traj_center_window_times()
+    eul_gt = r_gt.as_euler("xyz", degrees=True)
 
-    ts_in_range = ts[ind_intg[0] : ind_intg[-1]]  # s
-    pos_pred = interp1d(ts_intg, pos_intg, axis=0)(ts_in_range)
-    pos_gt = dataset.gt_pos[0][ind_intg[0] : ind_intg[-1], :]
-    ori_pred = dataset.orientations[0][ind_intg[0] : ind_intg[-1], :]
-    ori_gt = dataset.gt_ori[0][ind_intg[0] : ind_intg[-1], :]
-    eul_pred = Rotation.from_quat(ori_pred).as_euler("xyz", degrees=True)
-    eul_gt = Rotation.from_quat(ori_gt).as_euler("xyz", degrees=True)
+    #dts = np.mean(ts[ind_intg[1:]] - ts[ind_intg[:-1]])
+    dts = np.mean(ts[1:] - ts[:-1])
+    #pos_intg = np.zeros([pred_vels.shape[0] + 1, args.output_dim])
+    pos_intg = np.zeros([pred_vels.shape[0], args.output_dim])
+    #pos_intg[0] = pos_gt[0]
+    pos_intg = np.cumsum(pred_vels[:, :] * dts, axis=0) + pos_gt[0]
+    #ts_intg = np.append(ts[ind_intg], ts[ind_intg[-1]] + dts)
+    ts_intg = np.append(ts[0], ts[-1] + dts)
+
+    #ts_in_range = ts[ind_intg[0] : ind_intg[-1]]  # s
+    pos_pred = pos_intg #interp1d(ts_intg, pos_intg, axis=0)(ts_in_range)
+    #ori_pred = dataset.orientations[0][ind_intg[0] : ind_intg[-1], :]
+    eul_pred = eul_gt #Rotation.from_quat(ori_pred).as_euler("xyz", degrees=True)
+    
+    #print("SHAPES", ts.shape, pos_pred.shape, pos_gt.shape, eul_pred.shape, eul_gt.shape)
 
     traj_attr_dict = {
-        "ts": ts_in_range,
+        "ts": ts, #ts_in_range,
         "pos_pred": pos_pred,
         "pos_gt": pos_gt,
         "eul_pred": eul_pred,
@@ -382,9 +391,19 @@ def get_inference(network, data_loader, device, epoch):
     targets_all, preds_all, preds_cov_all, losses_all = [], [], [], []
     network.eval()
 
-    for bid, (feat, targ, _, _) in enumerate(data_loader):
-        pred, pred_cov = network(feat.to(device))
-        targ = targ.to(device)
+    for bid, sample in enumerate(data_loader):
+        sample = to_device(sample, device)
+        feat = sample["feats"]["imu0"]
+        
+        pred, pred_cov = network(feat)
+
+        targ = sample["targ_dt_World"][:,-1,:]
+        # Only grab the last prediction in this case
+        if len(pred.shape) == 3:
+            pred = pred[:,:,-1]
+            pred_cov = pred_cov[:,:,-1]
+        
+        assert len(pred.shape) == 2
         loss = get_loss(pred, pred_cov, targ, epoch)
 
         targets_all.append(torch_to_numpy(targ))
@@ -429,14 +448,16 @@ def arg_conversion(args):
     if not (args.imu_freq / args.sample_freq).is_integer():
         raise ValueError("sample_freq must be divisible by imu_freq.")
 
-    data_window_config = dict(
-        [
-            ("past_data_size", int(args.past_time * args.imu_freq)),
-            ("window_size", int(args.window_time * args.imu_freq)),
-            ("future_data_size", int(args.future_time * args.imu_freq)),
-            ("step_size", int(args.imu_freq / args.sample_freq)),
-        ]
-    )
+    data_window_config = dotdict()
+    data_window_config.past_data_size = int(args.past_time * args.imu_freq)
+    data_window_config.window_size = int(args.window_time * args.imu_freq)
+    data_window_config.future_data_size = int(args.future_time * args.imu_freq)
+    data_window_config.step_size = int(args.imu_freq / args.sample_freq)
+    data_window_config.data_style = "resampled"
+    data_window_config.input_sensors = ["imu0"]
+    data_window_config.decimator = 10
+    data_window_config.express_in_t0_yaw_normalized_frame = False
+
     net_config = {
         "in_dim": (
             data_window_config["past_data_size"]
@@ -480,8 +501,6 @@ def net_test(args):
     try:
         if args.root_dir is None:
             raise ValueError("root_dir must be specified.")
-        if args.test_list is None:
-            raise ValueError("test_list must be specified.")
         if args.out_dir is not None:
             if not osp.isdir(args.out_dir):
                 os.makedirs(args.out_dir)
@@ -493,7 +512,8 @@ def net_test(args):
         logging.error(e)
         return
 
-    test_list = get_datalist(args.test_list)
+    test_list_path = osp.join(args.root_dir, "test_list.txt")
+    test_list = get_datalist(test_list_path)
 
     device = torch.device(
         "cuda:0" if torch.cuda.is_available() and not args.cpu else "cpu"
@@ -512,9 +532,18 @@ def net_test(args):
     for data in test_list:
         logging.info(f"Processing {data}...")
         try:
-            seq_dataset = FbSequenceDataset(
-                args.root_dir, [data], args, data_window_config, mode="test"
+            #seq_dataset = FbSequenceDataset(
+            #    args.root_dir, [data], args, data_window_config, mode="test"
+            #)
+
+            seq_dataset = MemMappedSequencesDataset(
+                args.root_dir,
+                "test",
+                data_window_config,
+                sequence_subset=[data],
+                store_in_ram=True,
             )
+
             seq_loader = DataLoader(seq_dataset, batch_size=1024, shuffle=False)
         except OSError as e:
             print(e)

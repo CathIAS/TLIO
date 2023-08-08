@@ -303,7 +303,7 @@ class ImuMSCKF:
         self.initialize_state(t_us, R, v, p, ba_init, bg_init)
         logging.info("filter initialized with full state!")
 
-    def initialize(self, acc, t_us, ba_init, bg_init):
+    def initialize(self, t_us, acc, ba_init, bg_init):
         assert isinstance(t_us, int)
         self.prepare_filter()
         self.initialized = True
@@ -326,11 +326,11 @@ class ImuMSCKF:
         return R, p
 
     def get_evolving_state(self):
-        R = self.state.s_R
-        v = self.state.s_v
-        p = self.state.s_p
-        bg = self.state.s_bg
-        ba = self.state.s_ba
+        R = self.state.s_R.copy()
+        v = self.state.s_v.copy()
+        p = self.state.s_p.copy()
+        bg = self.state.s_bg.copy()
+        ba = self.state.s_ba.copy()
         return R, v, p, ba, bg
 
     def get_covariance(self):
@@ -363,7 +363,7 @@ class ImuMSCKF:
 
         if self.force_mahalanobis_until is not None:
             if self.state.s_timestamp_us < self.force_mahalanobis_until:
-                return True
+                return False
 
         if self.last_success_mahalanobis is not None:
             if self.state.s_timestamp_us > self.last_success_mahalanobis + int(
